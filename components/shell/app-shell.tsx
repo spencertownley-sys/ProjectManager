@@ -6,6 +6,7 @@ import { NavigationRail, type RailProject } from "./navigation-rail";
 import { TopBar } from "./top-bar";
 import { CommandPalette } from "./command-palette";
 import { TaskPaneHost } from "@/components/task/task-pane-host";
+import { ShortcutSheet } from "@/components/help/shortcut-sheet";
 import { useShellState, useViewState } from "@/lib/client/view-state";
 import { useWorkspace } from "@/lib/client/workspace-context";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,7 @@ export function AppShell({ data, children }: { data: ShellData; children: React.
         </div>
       </div>
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} projects={data.projects} />
+      <ShortcutSheet />
     </div>
   );
 }

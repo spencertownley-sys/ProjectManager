@@ -14,15 +14,15 @@ import { cn } from "@/lib/utils";
 
 const colors = paletteColor.options;
 
-export function NewProjectDialog({ open, onOpenChange, templateId }: { open: boolean; onOpenChange: (open: boolean) => void; templateId?: string }) {
+export function NewProjectDialog({ open, onOpenChange, templateId, workspaceTemplate }: { open: boolean; onOpenChange: (open: boolean) => void; templateId?: string; workspaceTemplate?: { id: string; name: string } }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {open ? <NewProjectForm onOpenChange={onOpenChange} initialTemplate={templateId} /> : null}
+      {open ? <NewProjectForm onOpenChange={onOpenChange} initialTemplate={templateId} workspaceTemplate={workspaceTemplate} /> : null}
     </Dialog>
   );
 }
 
-function NewProjectForm({ onOpenChange, initialTemplate }: { onOpenChange: (open: boolean) => void; initialTemplate?: string }) {
+function NewProjectForm({ onOpenChange, initialTemplate, workspaceTemplate }: { onOpenChange: (open: boolean) => void; initialTemplate?: string; workspaceTemplate?: { id: string; name: string } }) {
   const router = useRouter();
   const { slug, today } = useWorkspace();
   const { toast } = useToast();
@@ -31,6 +31,7 @@ function NewProjectForm({ onOpenChange, initialTemplate }: { onOpenChange: (open
   const [color, setColor] = React.useState<(typeof colors)[number]>("blue");
   const [privacy, setPrivacy] = React.useState<"workspace" | "private">("workspace");
   const [templateId, setTemplateId] = React.useState(initialTemplate ?? "simple");
+  const [fromWorkspace, setFromWorkspace] = React.useState(Boolean(workspaceTemplate));
   const [description, setDescription] = React.useState("");
   const [pending, setPending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -39,7 +40,7 @@ function NewProjectForm({ onOpenChange, initialTemplate }: { onOpenChange: (open
     e.preventDefault();
     setPending(true);
     setError(null);
-    const res = await createProjectAction(slug, { name, key: key || undefined, color, privacy, templateId, description: description || undefined }, today);
+    const res = await createProjectAction(slug, fromWorkspace && workspaceTemplate ? { name, key: key || undefined, color, privacy, templateProjectId: workspaceTemplate.id, description: description || undefined } : { name, key: key || undefined, color, privacy, templateId, description: description || undefined }, today);
     setPending(false);
     if (!res.ok) {
       setError(res.error.details?.[0]?.message ?? res.error.message);
@@ -79,6 +80,17 @@ function NewProjectForm({ onOpenChange, initialTemplate }: { onOpenChange: (open
             </Field>
           </div>
           <Field label="Template">
+            {fromWorkspace && workspaceTemplate ? (
+              <div className="flex items-center gap-3 rounded-sm border border-brand bg-selected p-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate type-body-1-strong">{workspaceTemplate.name}</span>
+                  <span className="block type-caption-1 text-fg-secondary">Saved in this workspace. Copies its workflow, sections, fields, views, and tasks.</span>
+                </span>
+                <Button variant="subtle" size="sm" onClick={() => setFromWorkspace(false)}>
+                  Choose another
+                </Button>
+              </div>
+            ) : (
             <div className="grid grid-cols-2 gap-2 md:grid-cols-3">
               {projectTemplates.map((t) => (
                 <button
@@ -93,6 +105,7 @@ function NewProjectForm({ onOpenChange, initialTemplate }: { onOpenChange: (open
                 </button>
               ))}
             </div>
+            )}
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Color">

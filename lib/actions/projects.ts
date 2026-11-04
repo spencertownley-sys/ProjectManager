@@ -5,7 +5,7 @@ import { getCurrentSession } from "@/lib/auth/current";
 import * as projects from "@/lib/services/projects";
 import * as views from "@/lib/services/views";
 import * as workspaces from "@/lib/services/workspaces";
-import { createProjectInput, updateProjectInput, createSectionInput, updateSectionInput, reorderSectionsInput, updateWorkflowInput, createCycleInput } from "@/lib/validation/project";
+import { createProjectInput, updateProjectInput, createSectionInput, updateSectionInput, reorderSectionsInput, updateWorkflowInput, createCycleInput, saveAsTemplateInput } from "@/lib/validation/project";
 import { savedViewInput, viewSpec } from "@/lib/validation/view-spec";
 import { paletteColor, healthValue } from "@/lib/validation/common";
 import { run } from "./result";
@@ -159,5 +159,19 @@ export async function deleteBaselineAction(workspaceSlug: string, baselineId: st
     const session = await getCurrentSession(slug.parse(workspaceSlug));
     await projects.deleteBaseline(session, z.string().uuid().parse(baselineId));
     return { id: baselineId };
+  });
+}
+
+export async function saveProjectAsTemplateAction(workspaceSlug: string, input: unknown) {
+  return run(async () => {
+    const session = await getCurrentSession(slug.parse(workspaceSlug));
+    return projects.saveProjectAsTemplate(session, saveAsTemplateInput.parse(input));
+  });
+}
+
+export async function listWorkspaceTemplatesAction(workspaceSlug: string) {
+  return run(async () => {
+    const session = await getCurrentSession(slug.parse(workspaceSlug));
+    return projects.listWorkspaceTemplates(session);
   });
 }

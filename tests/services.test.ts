@@ -11,7 +11,8 @@ import { createNotifications, listNotifications, markNotifications, unreadCount 
 import { inviteMember, changeMemberRole, removeMember, listPendingInvitations, updateTag, deleteTag, listTagsWithCounts, createTag, listNotificationPreferences, setNotificationPreference, type MembershipDirectory } from "@/lib/services/workspaces";
 import { createField, updateField, deleteField, listLibraryFields, listProjectFields, attachField, detachField, reorderProjectFields } from "@/lib/services/fields";
 import { listCycles, cycleBurndown, projectVelocity, planTasks, updateCycle } from "@/lib/services/cycles";
-import { createCycle, closeCycle } from "@/lib/services/projects";
+import { createCycle, closeCycle, saveProjectAsTemplate, listWorkspaceTemplates } from "@/lib/services/projects";
+import { searchWorkspace } from "@/lib/services/search";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 import { eq } from "drizzle-orm";
 
@@ -274,5 +275,47 @@ describe("services on PGlite", () => {
     const after = await listCycles(ctx, projectId);
     expect(after.find((c) => c.id === c2.id)?.count).toBe(1);
     await expect(planTasks({ db, actor: { ...member, workspaceRole: "guest" } }, { projectId, taskIds: [t1.id], cycleId: null })).rejects.toThrow();
+  });
+
+  it("searches tasks, comments, projects, and people inside the visible projects", async () => {
+    const ctx = { db, actor: member };
+    const t = await createTask(ctx, { projectId, title: "Quarterly roadmap narrative", sectionId: sections[0].id, description: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "Write the narrative for the leadership offsite." }] }] } });
+    await addComment(ctx, { taskId: t.id, body: { type: "doc", content: [{ type: "paragraph", content: [{ type: "text", text: "The narrative draft is in the shared folder." }] }] }, bodyText: "The narrative draft is in the shared folder.", mentionUserIds: [] });
+    const res = await searchWorkspace(ctx, { q: "narrative", limit: 50 });
+    expect(res.tasks.map((x) => x.id)).toContain(t.id);
+    const hit = res.tasks.find((x) => x.id === t.id)!;
+    expect(hit.titleHighlighted).toContain("[[narrative]]");
+    expect(hit.snippet).toContain("[[narrative]]");
+    expect(res.comments.some((c) => c.taskId === t.id && c.snippet.includes("[[narrative]]"))).toBe(true);
+    expect((await searchWorkspace(ctx, { q: "narrative", statusCategory: "done", limit: 50 })).tasks).toHaveLength(0);
+    expect((await searchWorkspace(ctx, { q: "narrative", assigneeId: "unassigned", limit: 50 })).tasks.map((x) => x.id)).toContain(t.id);
+    expect((await searchWorkspace(ctx, { q: hit.key, limit: 50 })).tasks[0]?.id).toBe(t.id);
+    const people = await searchWorkspace(ctx, { q: "@", limit: 50 });
+    expect(people.people.length).toBeGreaterThan(0);
+    const outsider = await searchWorkspace({ db, actor: { ...member, userId: member.userId, workspaceRole: "guest" } }, { q: "narrative", limit: 50 });
+    expect(outsider.people).toHaveLength(0);
+  });
+
+  it("saves a project as a template and creates a project from it", async () => {
+    const ctx = { db, actor: owner };
+    const source = await getProject(ctx, projectId);
+    const tpl = await saveProjectAsTemplate(ctx, { projectId, name: "Launch template", description: "Reuse me" });
+    expect(tpl.isTemplate).toBe(true);
+    const list = await listWorkspaceTemplates(ctx);
+    const mine = list.find((x) => x.id === tpl.id)!;
+    expect(mine).toMatchObject({ name: "Launch template", description: "Reuse me" });
+    expect(mine.sections).toEqual(source.sections.map((x) => x.name));
+    expect(mine.taskCount).toBeGreaterThan(0);
+    const created = await createProject(ctx, { name: "From template", color: "teal", privacy: "workspace", workflowTemplate: "simple", templateProjectId: tpl.id }, today);
+    expect(created.isTemplate).toBe(false);
+    const detail = await getProject(ctx, created.id);
+    expect(detail.sections.map((x) => x.name)).toEqual(source.sections.map((x) => x.name));
+    expect(detail.statuses.map((x) => x.name)).toEqual(source.statuses.map((x) => x.name));
+    const copied = await queryProjectTasks(ctx, created.id, { ...defaultViewSpec(), showCompleted: "all", subtasks: "flat" }, today);
+    expect(copied.rows.length).toBe(mine.taskCount);
+    expect(copied.rows.every((r) => r.assignee === null && r.dueDate === null)).toBe(true);
+    // Templates stay out of the project list.
+    const { listProjects } = await import("@/lib/services/projects");
+    expect((await listProjects(ctx, { today })).some((p) => p.id === tpl.id)).toBe(false);
   });
 });

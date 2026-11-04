@@ -12,8 +12,13 @@ import {
   fixtureNotifications,
   fixtureCycles,
   fixtureEvents,
+  fixtureSearchResults,
+  fixtureWorkspaceTemplates,
 } from "@/lib/dev/fixtures";
 import { CyclesPage } from "@/components/cycles/cycles-page";
+import { SearchPage } from "@/components/search/search-page";
+import { TemplatesGallery } from "@/components/templates/templates-gallery";
+import { HelpPage } from "@/components/help/help-page";
 import { cycleProgress } from "@/lib/client/cycles";
 import { InboxView } from "@/components/inbox/inbox-view";
 import { SettingsPreview, type SettingsPreviewPanel } from "@/components/settings/settings-preview";
@@ -86,7 +91,13 @@ export default async function PreviewPage({
             unreadCount: 3,
           }}
         >
-          {view === "cycles" ? (
+          {view === "search" ? (
+            <SearchPage projects={[{ id: "p-1", key: "MKT", name: "Spring campaign", color: "berry" }, { id: "p-2", key: "WEB", name: "Website refresh", color: "blue" }, { id: "p-3", key: "OPS", name: "Operations backlog", color: "teal" }]} staticResults={fixtureSearchResults()} />
+          ) : view === "templates" ? (
+            <TemplatesGallery workspaceTemplates={fixtureWorkspaceTemplates()} initialCategory={panel === "mine" ? "My templates" : "All"} />
+          ) : view === "help" ? (
+            <HelpPage />
+          ) : view === "cycles" ? (
             <CyclesPage
               project={project}
               cycles={fixtureCycles.map((c) => {

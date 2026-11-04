@@ -2,6 +2,8 @@
 import type { TaskRow, DependencyRow, PersonRef } from "@/lib/query-engine/types";
 import type { ProjectInfo } from "@/components/views/types";
 import type { NotificationItem } from "@/lib/services/notifications";
+import type { SearchResults } from "@/lib/services/search";
+import type { WorkspaceTemplate } from "@/lib/services/projects";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 
 const people: PersonRef[] = [
@@ -217,4 +219,57 @@ export function fixtureEvents(): Array<{ taskId: string; type: string; field: st
   // The active cycle also completed two tasks mid cycle and re-estimated one.
   out.push({ taskId: "t-7", type: "task.updated", field: "estimate", before: 9, after: 4, createdAt: day(-1) + "T11:00:00Z" });
   return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+/** A complete search result set for the preview; the page filters it client side by the query and filters. */
+export function fixtureSearchResults(): SearchResults {
+  const rows = fixtureRows();
+  const blurbs: Record<string, string> = {
+    "t-1": "Outline the goals, audience, and budget for the spring launch so creative and web can start.",
+    "t-8": "Build the landing page from the approved creative with the sign up form wired to the email list.",
+    "t-13": "Check the landing page on mobile, tablet, and desktop before the social posts go live.",
+    "t-16": "Launch day: landing page live, social posts scheduled, press release out by 9 am.",
+  };
+  const people = fixturePeople;
+  return {
+    q: "",
+    truncated: false,
+    tasks: rows
+      .filter((r) => !r.parentId)
+      .map((r) => ({
+        id: r.id,
+        key: r.key,
+        title: r.title,
+        titleHighlighted: r.title,
+        snippet: blurbs[r.id] ?? r.title,
+        projectId: "p-1",
+        projectKey: "MKT",
+        projectName: "Spring campaign",
+        projectColor: "berry",
+        status: { name: r.status.name, color: r.status.color, category: r.status.category },
+        assignee: r.assignee ? { id: r.assignee.id, displayName: r.assignee.displayName, avatarUrl: r.assignee.avatarUrl } : null,
+        dueDate: r.dueDate,
+        completedAt: r.completedAt,
+        attachmentCount: r.attachmentCount,
+      })),
+    projects: [
+      { id: "p-1", key: "MKT", name: "Spring campaign", color: "berry", description: "Landing page, email, and social for the spring launch", taskCount: 21, archivedAt: null },
+      { id: "p-2", key: "WEB", name: "Website refresh", color: "blue", description: "New marketing site on the design system", taskCount: 14, archivedAt: null },
+      { id: "p-3", key: "OPS", name: "Operations backlog", color: "teal", description: null, taskCount: 32, archivedAt: null },
+    ],
+    comments: [
+      { id: "c-1", taskId: "t-8", taskKey: "MKT-8", taskTitle: "Landing page build", projectId: "p-1", projectKey: "MKT", author: { id: people[2].id, displayName: people[2].displayName, avatarUrl: people[2].avatarUrl }, snippet: "The landing page copy is approved, go ahead and build the hero section first.", createdAt: day(-1) + "T14:12:00Z" },
+      { id: "c-2", taskId: "t-13", taskKey: "MKT-13", taskTitle: "QA landing page", projectId: "p-1", projectKey: "MKT", author: { id: people[4].id, displayName: people[4].displayName, avatarUrl: people[4].avatarUrl }, snippet: "Found two broken links on the landing page footer, fixing them now.", createdAt: day(-2) + "T09:40:00Z" },
+      { id: "c-3", taskId: "t-3", taskKey: "MKT-3", taskTitle: "Budget approval", projectId: "p-1", projectKey: "MKT", author: { id: people[1].id, displayName: people[1].displayName, avatarUrl: people[1].avatarUrl }, snippet: "Finance signed off on the budget this morning.", createdAt: day(-3) + "T16:05:00Z" },
+    ],
+    people: people.map((p, i) => ({ id: p.id, displayName: p.displayName, email: p.email ?? `${p.id.replace("u-", "")}@example.com`, avatarUrl: p.avatarUrl, role: i === 0 ? "owner" : i === 1 ? "admin" : "member" })),
+  };
+}
+
+/** Two projects saved as templates for the gallery preview. */
+export function fixtureWorkspaceTemplates(): WorkspaceTemplate[] {
+  return [
+    { id: "tpl-1", key: "LAUNCH", name: "Product launch", color: "berry", description: "Our launch checklist with the approvals the leadership team expects.", defaultView: "calendar", sections: ["Planning", "Production", "Launch", "Wrap-up"], taskCount: 18, createdBy: "Spencer Townley", createdAt: day(-20) + "T10:00:00Z" },
+    { id: "tpl-2", key: "ONB", name: "Client onboarding", color: "teal", description: null, defaultView: "list", sections: ["Kickoff", "Setup", "Handover"], taskCount: 9, createdBy: "Jenny Park", createdAt: day(-6) + "T15:30:00Z" },
+  ];
 }

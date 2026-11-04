@@ -5,7 +5,7 @@ import { assertCan } from "@/lib/auth/permissions";
 import { workflowTemplates } from "@/lib/templates/workflows";
 import { findProjectTemplate } from "@/lib/templates/projects";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
-import type { CreateProjectInput, UpdateProjectInput, createSectionInput, updateSectionInput, reorderSectionsInput, updateWorkflowInput, createCycleInput } from "@/lib/validation/project";
+import type { CreateProjectInput, UpdateProjectInput, SaveAsTemplateInput, createSectionInput, updateSectionInput, reorderSectionsInput, updateWorkflowInput, createCycleInput } from "@/lib/validation/project";
 import { emitTaskEvents } from "@/lib/events/emit";
 import { type ServiceContext, authorizeProject, visibleProjectIds, NotFoundError, ValidationError, positionBetween } from "./context";
 
@@ -156,9 +156,172 @@ export async function getProject(ctx: ServiceContext, projectId: string): Promis
   };
 }
 
+export type WorkspaceTemplate = {
+  id: string;
+  key: string;
+  name: string;
+  color: string;
+  description: string | null;
+  defaultView: string;
+  sections: string[];
+  taskCount: number;
+  createdBy: string | null;
+  createdAt: string;
+};
+
+/** Projects saved as templates in this workspace ("My templates" in the gallery). */
+export async function listWorkspaceTemplates(ctx: ServiceContext): Promise<WorkspaceTemplate[]> {
+  const { db, actor } = ctx;
+  const ids = await visibleProjectIds(db, actor);
+  if (ids.length === 0) return [];
+  const rows = await db
+    .select({
+      id: schema.projects.id,
+      key: schema.projects.key,
+      name: schema.projects.name,
+      color: schema.projects.color,
+      description: schema.projects.description,
+      defaultViewId: schema.projects.defaultViewId,
+      createdAt: schema.projects.createdAt,
+      ownerName: schema.users.displayName,
+      taskCount: sql<number>`(select count(*)::int from tasks t where t.project_id = ${schema.projects.id} and t.deleted_at is null)`,
+      sections: sql<string[]>`coalesce((select array_agg(s.name order by s.position) from sections s where s.project_id = ${schema.projects.id} and s.deleted_at is null), '{}')`,
+      defaultView: sql<string | null>`(select v.type::text from saved_views v where v.id = ${schema.projects.defaultViewId})`,
+    })
+    .from(schema.projects)
+    .leftJoin(schema.users, eq(schema.users.id, schema.projects.ownerId))
+    .where(and(inArray(schema.projects.id, ids), eq(schema.projects.isTemplate, true), isNull(schema.projects.deletedAt)))
+    .orderBy(desc(schema.projects.createdAt));
+  return rows.map((r) => ({ id: r.id, key: r.key, name: r.name, color: r.color, description: r.description, defaultView: r.defaultView ?? "list", sections: r.sections ?? [], taskCount: r.taskCount, createdBy: r.ownerName ?? null, createdAt: r.createdAt.toISOString() }));
+}
+
+/**
+ * Copies a project's structure into a new project row inside one transaction: workflow and statuses, sections,
+ * field links and project only fields, shared views, and top level tasks (titles, sections, estimates, milestones,
+ * priorities). Dates, assignees, comments, and completion are not copied. Returns the new project with its default view.
+ */
+async function cloneProject(
+  tx: DbOrTx,
+  actor: ServiceContext["actor"],
+  sourceId: string,
+  target: { name: string; key?: string; color?: string; description?: string | null; privacy?: "workspace" | "team" | "private"; isTemplate: boolean; teamId?: string | null },
+) {
+  const [source] = await tx.select().from(schema.projects).where(and(eq(schema.projects.id, sourceId), isNull(schema.projects.deletedAt)));
+  if (!source) throw new NotFoundError("Project");
+  const [sourceWorkflow] = await tx.select().from(schema.workflows).where(eq(schema.workflows.id, source.workflowId));
+  const sourceStatuses = await tx.select().from(schema.statuses).where(eq(schema.statuses.workflowId, source.workflowId)).orderBy(asc(schema.statuses.position));
+  const [workflow] = await tx.insert(schema.workflows).values({ workspaceId: actor.workspaceId, name: sourceWorkflow?.name ?? "Workflow" }).returning();
+  const statusRows = await tx
+    .insert(schema.statuses)
+    .values(sourceStatuses.map((s) => ({ workflowId: workflow.id, name: s.name, category: s.category, color: s.color, position: s.position, wipLimit: s.wipLimit })))
+    .returning();
+  const statusMap = new Map(sourceStatuses.map((s, i) => [s.id, statusRows[i].id]));
+
+  const key = await uniqueKey(tx, actor.workspaceId, target.key ?? keyFromName(target.name));
+  const [project] = await tx
+    .insert(schema.projects)
+    .values({
+      workspaceId: actor.workspaceId,
+      teamId: target.teamId ?? null,
+      workflowId: workflow.id,
+      key,
+      name: target.name,
+      description: target.description === undefined ? source.description : target.description,
+      color: target.color ?? source.color,
+      icon: source.icon,
+      privacy: target.privacy ?? "workspace",
+      ownerId: actor.userId,
+      autoSchedule: source.autoSchedule,
+      isTemplate: target.isTemplate,
+    })
+    .returning();
+  await tx.insert(schema.projectMembers).values({ projectId: project.id, userId: actor.userId, role: "owner" }).onConflictDoNothing();
+
+  const sourceSections = await tx.select().from(schema.sections).where(and(eq(schema.sections.projectId, sourceId), isNull(schema.sections.deletedAt))).orderBy(asc(schema.sections.position));
+  const sectionRows = sourceSections.length
+    ? await tx
+        .insert(schema.sections)
+        .values(sourceSections.map((s) => ({ projectId: project.id, name: s.name, position: s.position, isCollapsed: s.isCollapsed })))
+        .returning()
+    : [];
+  const sectionMap = new Map(sourceSections.map((s, i) => [s.id, sectionRows[i].id]));
+
+  // Field links: library fields are linked again; project only fields are copied.
+  const links = await tx
+    .select({ fieldId: schema.projectFields.fieldId, position: schema.projectFields.position, scopedProjectId: schema.fieldDefinitions.projectId, name: schema.fieldDefinitions.name, type: schema.fieldDefinitions.type, config: schema.fieldDefinitions.config, isRequired: schema.fieldDefinitions.isRequired, fieldPosition: schema.fieldDefinitions.position })
+    .from(schema.projectFields)
+    .innerJoin(schema.fieldDefinitions, eq(schema.fieldDefinitions.id, schema.projectFields.fieldId))
+    .where(and(eq(schema.projectFields.projectId, sourceId), isNull(schema.fieldDefinitions.deletedAt)));
+  for (const link of links) {
+    let fieldId = link.fieldId;
+    if (link.scopedProjectId) {
+      const [copy] = await tx.insert(schema.fieldDefinitions).values({ workspaceId: actor.workspaceId, projectId: project.id, name: link.name, type: link.type, config: link.config, isRequired: link.isRequired, position: link.fieldPosition }).returning();
+      fieldId = copy.id;
+    }
+    await tx.insert(schema.projectFields).values({ projectId: project.id, fieldId, position: link.position }).onConflictDoNothing();
+  }
+
+  const sourceViews = await tx.select().from(schema.savedViews).where(and(eq(schema.savedViews.projectId, sourceId), eq(schema.savedViews.isShared, true), isNull(schema.savedViews.deletedAt))).orderBy(asc(schema.savedViews.position));
+  const viewRows = sourceViews.length
+    ? await tx
+        .insert(schema.savedViews)
+        .values(sourceViews.map((v) => ({ workspaceId: actor.workspaceId, projectId: project.id, ownerId: actor.userId, name: v.name, type: v.type, spec: v.spec, isShared: true, position: v.position })))
+        .returning()
+    : await tx.insert(schema.savedViews).values({ workspaceId: actor.workspaceId, projectId: project.id, ownerId: actor.userId, name: "Default", type: "list", spec: defaultViewSpec(), isShared: true, position: 0 }).returning();
+  const sourceDefaultIndex = Math.max(0, sourceViews.findIndex((v) => v.id === source.defaultViewId));
+  const defaultView = viewRows[sourceDefaultIndex] ?? viewRows[0];
+  await tx.update(schema.projects).set({ defaultViewId: defaultView.id }).where(eq(schema.projects.id, project.id));
+
+  const sourceTasks = await tx
+    .select()
+    .from(schema.tasks)
+    .where(and(eq(schema.tasks.projectId, sourceId), isNull(schema.tasks.deletedAt), isNull(schema.tasks.parentId)))
+    .orderBy(asc(schema.tasks.position));
+  if (sourceTasks.length) {
+    const inserted = await tx
+      .insert(schema.tasks)
+      .values(
+        sourceTasks.map((t) => ({
+          workspaceId: actor.workspaceId,
+          projectId: project.id,
+          sectionId: t.sectionId ? (sectionMap.get(t.sectionId) ?? null) : null,
+          title: t.title,
+          description: t.description,
+          descriptionText: t.descriptionText,
+          statusId: statusMap.get(t.statusId) ?? statusRows[0].id,
+          priority: t.priority,
+          isMilestone: t.isMilestone,
+          estimate: t.estimate,
+          position: t.position,
+          createdBy: actor.userId,
+        })),
+      )
+      .returning();
+    await emitTaskEvents(
+      tx,
+      inserted.map((t) => ({ workspaceId: actor.workspaceId, projectId: project.id, taskId: t.id, actorId: actor.userId, type: "task.created" as const, after: { title: t.title } })),
+    );
+  }
+  return { ...project, defaultViewId: defaultView.id };
+}
+
+/** Saves a copy of a project as a workspace template (docs/10 section 12). */
+export async function saveProjectAsTemplate(ctx: ServiceContext, input: SaveAsTemplateInput) {
+  const { db, actor } = ctx;
+  await authorizeProject(db, actor, input.projectId, "project.update");
+  assertCan(actor, "project.create");
+  return db.transaction((tx) => cloneProject(tx, actor, input.projectId, { name: input.name, description: input.description ?? null, isTemplate: true, privacy: "workspace" }));
+}
+
 export async function createProject(ctx: ServiceContext, input: CreateProjectInput, today: string) {
   const { db, actor } = ctx;
   assertCan(actor, "project.create");
+  if (input.templateProjectId) {
+    const [source] = await db.select({ id: schema.projects.id, isTemplate: schema.projects.isTemplate }).from(schema.projects).where(and(eq(schema.projects.id, input.templateProjectId), eq(schema.projects.workspaceId, actor.workspaceId), isNull(schema.projects.deletedAt)));
+    if (!source) throw new NotFoundError("Template");
+    await authorizeProject(db, actor, source.id, "project.read");
+    return db.transaction((tx) => cloneProject(tx, actor, source.id, { name: input.name, key: input.key, color: input.color, description: input.description, privacy: input.privacy, teamId: input.teamId ?? null, isTemplate: false }));
+  }
   const template = findProjectTemplate(input.templateId);
   const workflowKey = input.templateId ? template.workflow : input.workflowTemplate;
   const workflowTemplate = workflowTemplates[workflowKey];

@@ -22,7 +22,7 @@ export function settingsGroups(base: string, canManageWorkspace: boolean): Setti
         { href: `${base}/fields`, label: "Fields library" },
         { href: `${base}/workflows`, label: "Workflows library" },
         { href: `${base}/tags`, label: "Tags" },
-        { href: `${base}/templates`, label: "Templates", disabled: true },
+        { href: `${base.replace(/\/settings$/, "")}/templates`, label: "Templates" },
         { href: `${base}/trash`, label: "Trash", disabled: true },
       ],
     });
@@ -41,7 +41,7 @@ export function settingsGroups(base: string, canManageWorkspace: boolean): Setti
       { href: `${base}/account/profile`, label: "Profile" },
       { href: `${base}/account/notifications`, label: "Notifications" },
       { href: `${base}/account/appearance`, label: "Appearance" },
-      { href: `${base}/account/shortcuts`, label: "Keyboard shortcuts", disabled: true },
+      { href: `${base.replace(/\/settings$/, "")}/help`, label: "Keyboard shortcuts" },
     ],
   });
   return groups;

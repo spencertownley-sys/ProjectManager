@@ -19,6 +19,8 @@ export const createProjectInput = z.object({
   endDate: isoDate.nullable().optional(),
   description: z.string().max(5000).nullable().optional(),
   templateId: z.string().optional(),
+  /** A project saved as a template in this workspace; copies its workflow, sections, fields, views, and tasks. */
+  templateProjectId: uuid.optional(),
   workflowTemplate: z.enum(["simple", "kanban", "scrum", "shape_up", "phase_gate", "triage"]).default("simple"),
 });
 export type CreateProjectInput = z.infer<typeof createProjectInput>;
@@ -70,3 +72,10 @@ export const createCycleInput = z.object({
   endDate: isoDate,
   capacity: z.number().min(0).nullable().optional(),
 });
+
+export const saveAsTemplateInput = z.object({
+  projectId: uuid,
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).nullable().optional(),
+});
+export type SaveAsTemplateInput = z.infer<typeof saveAsTemplateInput>;

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useHelpStore } from "@/lib/client/help-store";
 import { useAuthBridge } from "@/lib/client/auth-bridge";
 import { Search20Regular, Mail20Regular, Question20Regular } from "@fluentui/react-icons";
 import { Avatar } from "@/components/ui/avatar";
@@ -17,6 +18,7 @@ export function TopBar({ onOpenPalette, unreadCount }: { onOpenPalette: () => vo
   const { slug, workspace, user } = useWorkspace();
   const pathname = usePathname();
   const { signOut, openProfile } = useAuthBridge();
+  const setSheetOpen = useHelpStore((s) => s.setSheetOpen);
   const { density, setDensity } = useShellState();
   const [theme, setTheme] = React.useState<string>(() => (typeof window === "undefined" ? "system" : (localStorage.getItem("tp-theme") ?? "system")));
 
@@ -91,8 +93,9 @@ export function TopBar({ onOpenPalette, unreadCount }: { onOpenPalette: () => vo
           <MenuSeparator />
           <MenuItem onSelect={() => openProfile()}>Profile and security</MenuItem>
           <MenuItem asChild>
-            <Link href={`/w/${slug}/settings/notifications`}>Notification settings</Link>
+            <Link href={`/w/${slug}/settings/account/notifications`}>Notification settings</Link>
           </MenuItem>
+          <MenuItem onSelect={() => setSheetOpen(true)}>Keyboard shortcuts</MenuItem>
           <MenuSeparator />
           <MenuLabel>Theme</MenuLabel>
           <MenuRadioGroup value={theme} onValueChange={applyTheme}>
