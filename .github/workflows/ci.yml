@@ -18,7 +18,8 @@ jobs:
       - name: Fail on em dashes or en dashes in docs and root Markdown
         run: |
           set -euo pipefail
-          if grep -rnP "[\x{2014}\x{2013}]" docs README.md CLAUDE.md; then
+          # Byte patterns for U+2014 (em dash) and U+2013 (en dash) so the check works in any locale.
+          if LC_ALL=C grep -rn -e $'\xe2\x80\x94' -e $'\xe2\x80\x93' docs README.md CLAUDE.md; then
             echo "Dash characters found. Replace them with commas, colons, or separate sentences."
             exit 1
           fi
