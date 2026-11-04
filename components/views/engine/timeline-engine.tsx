@@ -78,19 +78,19 @@ export const TimelineEngine = React.forwardRef<EngineHandle, EngineProps>(functi
   }, [zoom, onZoomChange]);
 
   const scrollToX = React.useCallback(
-    (x: number, align: "start" | "center" = "center") => {
+    (x: number, align: "start" | "center" = "center", instant = false) => {
       const el = scrollRef.current;
       if (!el) return;
       const target = align === "center" ? x - (el.clientWidth - leftWidth) / 2 : x - 24;
-      el.scrollTo({ left: Math.max(0, target), behavior: "smooth" });
+      el.scrollTo({ left: Math.max(0, target), behavior: instant ? "auto" : "smooth" });
     },
     [leftWidth],
   );
   React.useImperativeHandle(
     ref,
     () => ({
-      scrollToDate: (iso, align) => scrollToX(dateToX(scale, iso), align),
-      scrollToToday: () => scrollToX(dateToX(scale, today)),
+      scrollToDate: (iso, align, instant) => scrollToX(dateToX(scale, iso), align, instant),
+      scrollToToday: (instant) => scrollToX(dateToX(scale, today), "center", instant),
       scrollToTask: (taskId) => {
         const idx = rows.findIndex((r) => r.kind === "task" && r.task.id === taskId);
         if (idx < 0) return;
@@ -99,9 +99,16 @@ export const TimelineEngine = React.forwardRef<EngineHandle, EngineProps>(functi
         const span = row.kind === "task" ? taskSpan(row.task) : null;
         if (span) scrollToX(dateToX(scale, span.start));
       },
+      visibleDates: () => {
+        const el = scrollRef.current;
+        if (!el) return { start: scale.start, end: scale.end };
+        const from = Math.max(0, el.scrollLeft - leftWidth);
+        const to = Math.min(scale.width - 1, el.scrollLeft - leftWidth + el.clientWidth);
+        return { start: xToDate(scale, from), end: xToDate(scale, Math.max(from, to)) };
+      },
       element: () => scrollRef.current,
     }),
-    [scale, today, rows, virtualizer, scrollToX],
+    [scale, today, rows, virtualizer, scrollToX, leftWidth],
   );
 
   // Geometry for every scheduled task row (cheap: one object per row) and for visible rows only when drawing.

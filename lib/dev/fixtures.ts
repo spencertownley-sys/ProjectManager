@@ -147,6 +147,20 @@ export function fixtureProject(): ProjectInfo {
       { id: "v-mine", name: "My open tasks", type: "list", spec: { ...defaultViewSpec(), filters: { kind: "group", op: "and", items: [{ kind: "filter", field: "assignee", op: "is_me" }] } }, isShared: false, ownerId: "u-spencer", position: 1 },
     ],
     members: people,
+    baselines: [
+      {
+        id: "bl-1",
+        name: "Plan v1",
+        createdAt: day(-7) + "T09:00:00Z",
+        // The original plan: production ran two days earlier, launch a week earlier.
+        tasks: Object.fromEntries(titles.map(([, , , start, due, , , milestone], i) => {
+          const shift = i >= 5 && i < 12 ? -2 : i >= 12 ? -7 : 0;
+          const s = start === null ? null : day((milestone ? (due as number) : start) + shift);
+          const d = due === null ? null : day(due + shift);
+          return [`t-${i + 1}`, { startDate: s, dueDate: d }];
+        })),
+      },
+    ],
     role: "owner",
   };
 }

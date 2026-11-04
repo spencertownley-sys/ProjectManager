@@ -91,7 +91,7 @@ Interactions:
 - Scroll to today; scroll to selected.
 - Export PNG or PDF of the visible or full range.
 
-Performance: rows virtualized; columns (time units) virtualized; bars and connectors rendered in one SVG per visible viewport; dependency routing computed in a web worker for projects above 2,000 dependencies.
+Performance: rows virtualized; columns (time units) virtualized; bars and connectors rendered in one SVG per visible viewport; dependency routing computed in a web worker for projects above 2,000 dependencies (phase 1 computes on the main thread; the worker is added when a project crosses the threshold).
 
 Keyboard: arrows move the focused bar one unit; Shift with arrows resizes; `L` starts linking mode, then arrows and Enter pick the target; `+` and `-` zoom.
 

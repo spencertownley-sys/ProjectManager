@@ -3,15 +3,17 @@ import type { DateRange, Zoom } from "@/lib/client/timeline/scale";
 
 /** A row in the timeline engine: a task bar row or a collapsible group with an optional summary bar. */
 export type EngineRow =
-  | { kind: "task"; key: string; task: TaskRow; depth: number; groupKey?: string }
+  | { kind: "task"; key: string; task: TaskRow; depth: number; groupKey?: string; hasChildren?: boolean; expanded?: boolean }
   | { kind: "group"; key: string; label: string; depth: number; collapsed: boolean; count: number; color?: string; summary: DateRange | null; meta?: Record<string, unknown> };
 
 export type EngineLink = { predecessorId: string; successorId: string; type: DependencyRow["type"] };
 
 export type EngineHandle = {
-  scrollToDate: (iso: string, align?: "start" | "center") => void;
+  scrollToDate: (iso: string, align?: "start" | "center", instant?: boolean) => void;
   scrollToTask: (taskId: string) => void;
-  scrollToToday: () => void;
+  scrollToToday: (instant?: boolean) => void;
+  /** The dates currently on screen. */
+  visibleDates: () => DateRange;
   /** The scroll container, for exports. */
   element: () => HTMLDivElement | null;
 };

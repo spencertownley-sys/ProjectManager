@@ -7,6 +7,8 @@ import type { ViewSpec } from "@/lib/validation/view-spec";
 import type { UpdateTaskInput, CreateTaskInput, MoveTaskInput } from "@/lib/validation/task";
 import { queryProjectTasksAction, queryMyWorkAction, updateTaskAction, createTaskAction, moveTaskAction, deleteTaskAction, restoreTaskAction, getTaskDetailAction, bulkUpdateTasksAction } from "@/lib/actions/tasks";
 import type { TaskDetail } from "@/lib/services/tasks";
+import { getBaselineAction } from "@/lib/actions/projects";
+import type { BaselineTasks } from "@/lib/services/projects";
 import { useWorkspace } from "./workspace-context";
 import { useToast } from "@/components/ui/toast";
 
@@ -19,7 +21,24 @@ export const keys = {
   myWork: (slug: string, spec: ViewSpec, mode: string) => ["tasks", slug, "my-work", mode, spec] as const,
   allTasks: (slug: string) => ["tasks", slug] as const,
   taskDetail: (slug: string, id: string) => ["task", slug, id] as const,
+  baseline: (slug: string, id: string) => ["baseline", slug, id] as const,
 };
+
+/** The dates a saved Gantt baseline captured. Fixture baselines carry their tasks inline and skip the server. */
+export function useBaseline(baseline: { id: string; tasks?: BaselineTasks } | null) {
+  const { slug } = useWorkspace();
+  return useQuery({
+    queryKey: keys.baseline(slug, baseline?.id ?? ""),
+    queryFn: async () => {
+      if (baseline?.tasks) return baseline.tasks;
+      const res = await getBaselineAction(slug, baseline!.id);
+      if (!res.ok) throw new Error(res.error.message);
+      return res.data.tasks;
+    },
+    enabled: Boolean(baseline),
+    staleTime: 60_000,
+  });
+}
 
 /**
  * Tasks for a project view. `staticData` (the dev preview) answers every spec with the same rows instead of

@@ -64,6 +64,7 @@ export async function ProjectPage({ workspaceSlug, projectKey, view, savedViewId
     cycles: detail.cycles.map((c) => ({ id: c.id, name: c.name, goal: c.goal, startDate: c.startDate, endDate: c.endDate, capacity: c.capacity === null ? null : Number(c.capacity), closedAt: c.closedAt?.toISOString() ?? null })),
     views: detail.views.map((v) => ({ id: v.id, name: v.name, type: v.type, spec: viewSpec.parse(v.spec), isShared: v.isShared, ownerId: v.ownerId, position: v.position })),
     members: detail.members.map((m) => ({ id: m.id, displayName: m.displayName, avatarUrl: m.avatarUrl, email: m.email })),
+    baselines: detail.baselines,
     role: detail.role,
   };
 

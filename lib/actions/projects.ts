@@ -139,3 +139,25 @@ export async function createTagAction(workspaceSlug: string, input: unknown) {
     return workspaces.createTag(session, parsed);
   });
 }
+
+export async function saveBaselineAction(workspaceSlug: string, input: { projectId: string; name: string }) {
+  return run(async () => {
+    const session = await getCurrentSession(slug.parse(workspaceSlug));
+    return projects.saveBaseline(session, { projectId: z.string().uuid().parse(input.projectId), name: z.string().max(80).parse(input.name) });
+  });
+}
+
+export async function getBaselineAction(workspaceSlug: string, baselineId: string) {
+  return run(async () => {
+    const session = await getCurrentSession(slug.parse(workspaceSlug));
+    return projects.getBaselineTasks(session, z.string().uuid().parse(baselineId));
+  });
+}
+
+export async function deleteBaselineAction(workspaceSlug: string, baselineId: string) {
+  return run(async () => {
+    const session = await getCurrentSession(slug.parse(workspaceSlug));
+    await projects.deleteBaseline(session, z.string().uuid().parse(baselineId));
+    return { id: baselineId };
+  });
+}

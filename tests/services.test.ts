@@ -4,7 +4,7 @@ import type { Database } from "@/lib/db/client";
 import { schema } from "@/lib/db/client";
 import type { Actor } from "@/lib/auth/permissions";
 import { upsertUser, upsertWorkspace, upsertMembership, resolveActor } from "@/lib/services/workspaces";
-import { createProject, getProject, createSection } from "@/lib/services/projects";
+import { createProject, getProject, createSection, saveBaseline, getBaselineTasks, deleteBaseline } from "@/lib/services/projects";
 import { createTask, updateTask, moveTask, queryProjectTasks, addDependency, addComment, getTaskDetail, queryMyWork, deleteTask } from "@/lib/services/tasks";
 import { saveView } from "@/lib/services/views";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
@@ -133,5 +133,21 @@ describe("services on PGlite", () => {
     expect(res.rows.some((r) => r.id === t.id)).toBe(false);
     const section = await createSection(ctx, { projectId, name: "Extra" });
     expect(section.position).toBeGreaterThan(0);
+  });
+
+  it("saves and reads a baseline of task dates, and lists it on the project", async () => {
+    const ctx = { db, actor: member };
+    const task = await createTask(ctx, { projectId, title: "Baseline me", sectionId: sections[0].id, startDate: "2026-11-20", dueDate: "2026-11-24" });
+    const baseline = await saveBaseline(ctx, { projectId, name: "Plan v1" });
+    expect(baseline.taskCount).toBeGreaterThan(0);
+    const detail = await getProject(ctx, projectId);
+    expect(detail.baselines.map((b) => b.name)).toContain("Plan v1");
+    const loaded = await getBaselineTasks(ctx, baseline.id);
+    expect(loaded.tasks[task.id]).toEqual({ startDate: "2026-11-20", dueDate: "2026-11-24" });
+    await updateTask(ctx, { id: task.id, dueDate: "2026-11-30" });
+    expect((await getBaselineTasks(ctx, baseline.id)).tasks[task.id]?.dueDate).toBe("2026-11-24");
+    await expect(saveBaseline(ctx, { projectId, name: "  " })).rejects.toThrow();
+    await deleteBaseline(ctx, baseline.id);
+    expect((await getProject(ctx, projectId)).baselines.find((b) => b.id === baseline.id)).toBeUndefined();
   });
 });

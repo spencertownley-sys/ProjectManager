@@ -22,6 +22,8 @@ export type ProjectInfo = {
   cycles: Array<{ id: string; name: string; goal: string | null; startDate: string; endDate: string; capacity: number | null; closedAt: string | null }>;
   views: Array<{ id: string; name: string; type: ViewType; spec: ViewSpec; isShared: boolean; ownerId: string | null; position: number }>;
   members: PersonRef[];
+  /** Saved Gantt baselines, newest first. `tasks` is only filled by the dev preview fixtures. */
+  baselines: Array<{ id: string; name: string; createdAt: string; tasks?: Record<string, { startDate: string | null; dueDate: string | null }> }>;
   role: "owner" | "editor" | "commenter" | "viewer" | null;
 };
 

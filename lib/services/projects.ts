@@ -100,6 +100,7 @@ export type ProjectDetail = {
   cycles: Array<typeof schema.cycles.$inferSelect>;
   views: Array<typeof schema.savedViews.$inferSelect>;
   members: Array<{ id: string; displayName: string; avatarUrl: string | null; email: string; role: string }>;
+  baselines: Array<{ id: string; name: string; createdAt: string }>;
   role: "owner" | "editor" | "commenter" | "viewer" | null;
 };
 
@@ -118,7 +119,7 @@ export async function getProject(ctx: ServiceContext, projectId: string): Promis
   const pctx = await authorizeProject(db, actor, projectId, "project.read");
   const [project] = await db.select().from(schema.projects).where(eq(schema.projects.id, projectId));
   if (!project) throw new NotFoundError("Project");
-  const [sections, statuses, projectFieldRows, cycles, views] = await Promise.all([
+  const [sections, statuses, projectFieldRows, cycles, views, baselineRows] = await Promise.all([
     db.select().from(schema.sections).where(and(eq(schema.sections.projectId, projectId), isNull(schema.sections.deletedAt))).orderBy(asc(schema.sections.position)),
     db.select().from(schema.statuses).where(eq(schema.statuses.workflowId, project.workflowId)).orderBy(asc(schema.statuses.position)),
     db
@@ -133,6 +134,7 @@ export async function getProject(ctx: ServiceContext, projectId: string): Promis
       .from(schema.savedViews)
       .where(and(eq(schema.savedViews.projectId, projectId), isNull(schema.savedViews.deletedAt), sql`(${schema.savedViews.isShared} = true or ${schema.savedViews.ownerId} = ${actor.userId}::uuid)`))
       .orderBy(asc(schema.savedViews.position), asc(schema.savedViews.createdAt)),
+    db.select({ id: schema.baselines.id, name: schema.baselines.name, createdAt: schema.baselines.createdAt }).from(schema.baselines).where(eq(schema.baselines.projectId, projectId)).orderBy(desc(schema.baselines.createdAt)),
   ]);
   const memberRows = await db
     .select({ id: schema.users.id, displayName: schema.users.displayName, avatarUrl: schema.users.avatarUrl, email: schema.users.email, role: schema.workspaceMembers.role })
@@ -149,6 +151,7 @@ export async function getProject(ctx: ServiceContext, projectId: string): Promis
     cycles,
     views,
     members: memberRows.filter((m) => m.role !== "guest" || pctx.explicitRole !== null),
+    baselines: baselineRows.map((b) => ({ id: b.id, name: b.name, createdAt: b.createdAt.toISOString() })),
     role: effectiveProjectRole(actor, pctx),
   };
 }
@@ -385,4 +388,43 @@ export async function listStatusUpdates(ctx: ServiceContext, projectId: string) 
     .where(eq(schema.statusUpdates.projectId, projectId))
     .orderBy(desc(schema.statusUpdates.createdAt))
     .limit(50);
+}
+
+/** Snapshots every task's dates so the Gantt can compare the plan against them (docs/11 section 5, FR-PLAN-03). */
+export async function saveBaseline(ctx: ServiceContext, input: { projectId: string; name: string }) {
+  const { db, actor } = ctx;
+  await authorizeProject(db, actor, input.projectId, "task.update");
+  const name = input.name.trim();
+  if (!name) throw new ValidationError("Give the baseline a name");
+  return db.transaction(async (tx) => {
+    const [baseline] = await tx.insert(schema.baselines).values({ projectId: input.projectId, name, createdBy: actor.userId }).returning();
+    const taskRows = await tx
+      .select({ id: schema.tasks.id, startDate: schema.tasks.startDate, dueDate: schema.tasks.dueDate })
+      .from(schema.tasks)
+      .where(and(eq(schema.tasks.projectId, input.projectId), isNull(schema.tasks.deletedAt)));
+    if (taskRows.length) await tx.insert(schema.baselineTasks).values(taskRows.map((t) => ({ baselineId: baseline.id, taskId: t.id, startDate: t.startDate, dueDate: t.dueDate })));
+    return { id: baseline.id, name: baseline.name, createdAt: baseline.createdAt.toISOString(), taskCount: taskRows.length };
+  });
+}
+
+export type BaselineTasks = Record<string, { startDate: string | null; dueDate: string | null }>;
+
+/** The dates a baseline captured, keyed by task id. */
+export async function getBaselineTasks(ctx: ServiceContext, baselineId: string): Promise<{ id: string; name: string; createdAt: string; tasks: BaselineTasks }> {
+  const { db, actor } = ctx;
+  const [baseline] = await db.select().from(schema.baselines).where(eq(schema.baselines.id, baselineId));
+  if (!baseline) throw new NotFoundError("Baseline");
+  await authorizeProject(db, actor, baseline.projectId, "project.read");
+  const rows = await db.select().from(schema.baselineTasks).where(eq(schema.baselineTasks.baselineId, baselineId));
+  const tasks: BaselineTasks = {};
+  for (const r of rows) tasks[r.taskId] = { startDate: r.startDate, dueDate: r.dueDate };
+  return { id: baseline.id, name: baseline.name, createdAt: baseline.createdAt.toISOString(), tasks };
+}
+
+export async function deleteBaseline(ctx: ServiceContext, baselineId: string) {
+  const { db, actor } = ctx;
+  const [baseline] = await db.select().from(schema.baselines).where(eq(schema.baselines.id, baselineId));
+  if (!baseline) throw new NotFoundError("Baseline");
+  await authorizeProject(db, actor, baseline.projectId, "task.update");
+  await db.delete(schema.baselines).where(eq(schema.baselines.id, baselineId));
 }
