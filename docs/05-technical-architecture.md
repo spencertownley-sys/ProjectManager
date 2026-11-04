@@ -4,7 +4,7 @@ Version 1.0, 03 Nov 2026. Owner: Engineering.
 
 ## 1. Summary
 
-Meridian is a single Next.js application (App Router, TypeScript) deployed on Vercel from the GitHub repository `spencertownley-sys/ProjectManager`. Authentication, organizations, and sessions are handled by Clerk. Data lives in Supabase Postgres, accessed through Drizzle ORM from server code only. Supabase Realtime broadcasts row changes to connected clients. Background work (automations, notifications, webhook delivery, imports) runs on Inngest. Email is sent through Resend. Files are stored in Supabase Storage.
+TaskParty is a single Next.js application (App Router, TypeScript) deployed on Vercel from the GitHub repository `spencertownley-sys/ProjectManager`. Authentication, organizations, and sessions are handled by Clerk. Data lives in Supabase Postgres, accessed through Drizzle ORM from server code only. Supabase Realtime broadcasts row changes to connected clients. Background work (automations, notifications, webhook delivery, imports) runs on Inngest. Email is sent through Resend. Files are stored in Supabase Storage.
 
 ```
 +---------------------------------------------------------------+
@@ -44,7 +44,7 @@ Meridian is a single Next.js application (App Router, TypeScript) deployed on Ve
 | Layer | Choice | Notes |
 |---|---|---|
 | Framework | Next.js 16 (App Router), React 19, TypeScript 5 strict | Middleware file is `proxy.ts` on Next.js 16 (Clerk docs). Cache Components on by default; wrap auth-dependent UI in Suspense. |
-| Styling | Tailwind CSS 4 with CSS variables for tokens; shadcn/ui primitives (Radix) restyled to the Meridian design system | No component library theme is used as-is. |
+| Styling | Tailwind CSS 4 with CSS variables for tokens; shadcn/ui primitives (Radix) restyled to the TaskParty design system | No component library theme is used as-is. |
 | State | TanStack Query for server state with optimistic updates; Zustand for view state (selection, pane, drag) | |
 | Drag and drop | dnd-kit | Used in List, Board, Gantt, Calendar, Workload. |
 | Tables and virtualization | TanStack Table, TanStack Virtual | Table and List; Gantt uses its own virtualized renderer. |
@@ -78,7 +78,7 @@ Reason: one deployable, one language, one type system from database to UI. Serve
 ### Decision 2: Clerk for identity and organizations
 
 Alternatives: Supabase Auth, Auth.js, WorkOS.
-Reason: required by the product owner; Clerk Organizations map cleanly to workspaces, provide invitations, roles, and enterprise SSO later without rework. Clerk remains the source of truth for identity and membership; Meridian stores a mirror of users and memberships (via Clerk webhooks) so joins and RLS work in Postgres.
+Reason: required by the product owner; Clerk Organizations map cleanly to workspaces, provide invitations, roles, and enterprise SSO later without rework. Clerk remains the source of truth for identity and membership; TaskParty stores a mirror of users and memberships (via Clerk webhooks) so joins and RLS work in Postgres.
 
 ### Decision 3: Postgres on Supabase with Drizzle, accessed from the server only
 
@@ -100,7 +100,7 @@ Mutations update the TanStack Query cache immediately, send the server action, a
 ### Decision 7: Build the timeline engine in-house, evaluate SVAR as an accelerator
 
 Alternatives: SVAR React Gantt (MIT core, PRO paid), DHTMLX, Bryntum, Syncfusion.
-Reason: commercial Gantt libraries carry licensing cost and a visual style that fights the Meridian design system. The engine is also needed for Timeline, Calendar week view, and Workload, which libraries do not cover. Plan: build the scale, virtualization, and bar rendering in-house in Phase 1. If dependency drawing and auto-scheduling prove slower to build than two weeks, adopt SVAR's MIT core for Gantt only, wrapped so its DOM is styled with Meridian tokens, and keep the in-house engine for the other views.
+Reason: commercial Gantt libraries carry licensing cost and a visual style that fights the TaskParty design system. The engine is also needed for Timeline, Calendar week view, and Workload, which libraries do not cover. Plan: build the scale, virtualization, and bar rendering in-house in Phase 1. If dependency drawing and auto-scheduling prove slower to build than two weeks, adopt SVAR's MIT core for Gantt only, wrapped so its DOM is styled with TaskParty tokens, and keep the in-house engine for the other views.
 
 ### Decision 8: Inngest for background work
 

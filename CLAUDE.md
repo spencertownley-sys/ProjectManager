@@ -4,7 +4,7 @@ Conventions for Claude Code sessions working in this repository. Read this befor
 
 ## What this is
 
-Meridian (working name): a project management and team task management suite. Next.js App Router, TypeScript, Tailwind, Clerk for auth and organizations, Supabase Postgres through Drizzle, Supabase Realtime, Inngest for background jobs, deployed on Vercel from this GitHub repository.
+TaskParty: a project management and team task management suite. Next.js App Router, TypeScript, Tailwind, Clerk for auth and organizations, Supabase Postgres through Drizzle, Supabase Realtime, Inngest for background jobs, deployed on Vercel from this GitHub repository.
 
 ## Non-negotiable rules
 

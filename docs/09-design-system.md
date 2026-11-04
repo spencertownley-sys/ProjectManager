@@ -4,7 +4,7 @@ Version 1.0, 03 Nov 2026. Owner: Design.
 
 ## 1. Design intent
 
-Meridian should feel like a first-party member of the Microsoft 365 family: Planner, Project for the web, Loop, Teams, and Outlook. Quiet surfaces, one accent, text that does the work, dense but legible data. Users should never notice the interface; they should notice their work.
+TaskParty should feel like a first-party member of the Microsoft 365 family: Planner, Project for the web, Loop, Teams, and Outlook. Quiet surfaces, one accent, text that does the work, dense but legible data. Users should never notice the interface; they should notice their work.
 
 Explicit anti-goals, because they are what makes software look generated rather than designed:
 

@@ -2,7 +2,7 @@
 
 Version 1.0, 03 Nov 2026. Owner: Engineering.
 
-This is the implementation sequence for building Meridian with Claude Code in this repository. Each step names the documents it depends on, what to produce, and how to verify it. Steps are small enough to finish in one working session and leave the application runnable.
+This is the implementation sequence for building TaskParty with Claude Code in this repository. Each step names the documents it depends on, what to produce, and how to verify it. Steps are small enough to finish in one working session and leave the application runnable.
 
 Read `CLAUDE.md` at the repository root first; it holds the conventions every session must follow.
 

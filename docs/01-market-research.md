@@ -4,11 +4,11 @@ Version 1.0, 03 Nov 2026. Owner: Product.
 
 ## 1. Purpose
 
-This document records what the leading project and task management products do, which workflows real teams run, and what that implies for Meridian. The product requirements in document 02 cite this research by section number.
+This document records what the leading project and task management products do, which workflows real teams run, and what that implies for TaskParty. The product requirements in document 02 cite this research by section number.
 
 ## 2. The competitive landscape
 
-The market has split into two camps. Focused tools (Linear, Jira, Basecamp) are opinionated and fast but serve one kind of team. All-in-one tools (ClickUp, Notion, Monday.com, Asana) serve everyone but carry setup cost, interface density, and per-seat pricing that climbs quickly. Many organizations run two tools at once: one for engineering and one for everyone else. That split is the opening Meridian targets.
+The market has split into two camps. Focused tools (Linear, Jira, Basecamp) are opinionated and fast but serve one kind of team. All-in-one tools (ClickUp, Notion, Monday.com, Asana) serve everyone but carry setup cost, interface density, and per-seat pricing that climbs quickly. Many organizations run two tools at once: one for engineering and one for everyone else. That split is the opening TaskParty targets.
 
 ### 2.1 Tool by tool
 
@@ -59,7 +59,7 @@ Synthesized from review sites, community threads, and the comparison articles ab
 
 ## 3. Workflows teams actually run
 
-Meridian must support these without forcing one on the team. Each maps to a project template and a set of default views (document 02, section 6).
+TaskParty must support these without forcing one on the team. Each maps to a project template and a set of default views (document 02, section 6).
 
 | Workflow | What it is | Who uses it | What the tool must provide |
 |---|---|---|---|
@@ -103,17 +103,17 @@ Buyers in the Microsoft 365 ecosystem evaluate software against Outlook, Teams, 
 - Dense but readable tables; row height 36px to 44px.
 - Icons from a single consistent set (Fluent UI System Icons, MIT licensed).
 
-Document 09 defines the Meridian design system on this basis.
+Document 09 defines the TaskParty design system on this basis.
 
 ## 6. Technical patterns worth copying
 
-- **Local-first sync (Linear).** Interactions feel instant because the client holds a cache and reconciles in the background. Meridian uses optimistic updates and realtime subscriptions to approximate this without a full sync engine in v1.
+- **Local-first sync (Linear).** Interactions feel instant because the client holds a cache and reconciles in the background. TaskParty uses optimistic updates and realtime subscriptions to approximate this without a full sync engine in v1.
 - **One query engine for all views (Notion, Airtable).** Views are presentation over a shared filter and sort specification.
 - **Typed custom fields with per-project definitions and workspace-level field libraries (Asana, Monday).**
 - **Event-sourced activity log (Linear, Jira).** Every mutation emits an event that drives history, notifications, automations, and webhooks from one place.
 - **Automations as triggers, conditions, actions (Monday, Asana, ClickUp).**
 
-## 7. Implications for Meridian
+## 7. Implications for TaskParty
 
 1. Compete on calm, speed, and view consistency, not feature count.
 2. Serve engineering and non-engineering work in one workspace so organizations can retire their second tool.

@@ -8,7 +8,7 @@ Four integration layers, built in this order so each reuses the one below it:
 
 1. **Event stream.** Every change emits a typed event (document 06, section 3). Everything below consumes it.
 2. **Outbound webhooks.** Signed HTTP delivery of events to any URL, with retries and a log. Zapier, Make, n8n, and custom scripts attach here.
-3. **Inbound webhooks and the REST API.** External systems create and update Meridian objects.
+3. **Inbound webhooks and the REST API.** External systems create and update TaskParty objects.
 4. **Connectors.** First-party apps that hold OAuth credentials for a provider and use layers 2 and 3 in both directions with provider-specific UI (Slack unfurls, GitHub PR links).
 
 ## 2. Outbound webhooks
@@ -50,7 +50,7 @@ automation.failed
 }
 ```
 
-Headers: `X-Meridian-Event`, `X-Meridian-Delivery` (delivery id), `X-Meridian-Timestamp`, `X-Meridian-Signature: v1=<hex HMAC SHA-256 of "<timestamp>.<raw body>" with the secret>`. Receivers must reject timestamps older than 5 minutes to prevent replay.
+Headers: `X-TaskParty-Event`, `X-TaskParty-Delivery` (delivery id), `X-TaskParty-Timestamp`, `X-TaskParty-Signature: v1=<hex HMAC SHA-256 of "<timestamp>.<raw body>" with the secret>`. Receivers must reject timestamps older than 5 minutes to prevent replay.
 
 ### 2.4 Delivery
 
@@ -60,7 +60,7 @@ Batching: events for the same webhook within 500 ms are delivered as separate re
 
 ## 3. Inbound webhooks
 
-A project owner creates an inbound webhook and receives a URL `https://app.<domain>/api/webhooks/inbound/<token>` plus an optional shared secret (sent as `X-Meridian-Secret`). The mapping editor maps JSON paths in the incoming body to task fields (`$.issue.title -> title`, `$.issue.body -> description`, `$.priority -> custom:fld_priority`) with an optional match key (`$.issue.id -> custom:fld_external_id`) so repeated calls update rather than duplicate. Rate limit 120 requests per minute per token. Payload limit 1 MB.
+A project owner creates an inbound webhook and receives a URL `https://app.<domain>/api/webhooks/inbound/<token>` plus an optional shared secret (sent as `X-TaskParty-Secret`). The mapping editor maps JSON paths in the incoming body to task fields (`$.issue.title -> title`, `$.issue.body -> description`, `$.priority -> custom:fld_priority`) with an optional match key (`$.issue.id -> custom:fld_external_id`) so repeated calls update rather than duplicate. Rate limit 120 requests per minute per token. Payload limit 1 MB.
 
 ## 4. REST API
 
@@ -89,7 +89,7 @@ Order of build inside phase 2 follows this table. Microsoft Teams leads because 
 | 3 | Planner and Project import | Inbound | Import Planner plans (buckets to sections, labels to tags, checklist to subtasks) through Microsoft Graph; import Project .mpp and .xml with tasks, dependencies, and baselines; export a Gantt project to .mpp and .xml |
 | 4 | Excel and Power BI export | Outbound | Live OData feed per workspace and per saved view for Excel "Get Data" and Power BI; scheduled .xlsx export to OneDrive or SharePoint |
 | 5 | MCP server (agent access) | Both | Hosted MCP server exposing tools to list and search tasks, create and update tasks, post comments, read project status, and run saved views, with OAuth scopes and per-workspace enablement; works with Microsoft Copilot, Claude, and other MCP clients |
-| 6 | Slack | Both | Notifications to DM or channel per project; link unfurls; `/meridian` slash command; "Create task from message"; deeper features (threads, home tab) after Teams reaches parity |
+| 6 | Slack | Both | Notifications to DM or channel per project; link unfurls; `/taskparty` slash command; "Create task from message"; deeper features (threads, home tab) after Teams reaches parity |
 | 7 | Zapier and Make | Both | Official apps using webhooks for triggers and the REST API for actions |
 | 8 | Google Calendar and Outlook Calendar | Outbound | ICS feed per user; two-way sync remains a phase 3 candidate |
 
@@ -104,7 +104,7 @@ Microsoft 365: Planner (import), Project (import and export MPP), Excel (live ex
 Time and finance: Harvest, Toggl, Clockify, QuickBooks (phase 3 time tracking export), Stripe (billing only).
 CRM and support: HubSpot, Salesforce, Zendesk, Intercom (create task from ticket).
 Design and marketing: Canva, Adobe Express, Mailchimp.
-AI: Anthropic Claude (assistant features), OpenAI, custom MCP server so agents can read and write Meridian.
+AI: Anthropic Claude (assistant features), OpenAI, custom MCP server so agents can read and write TaskParty.
 
 ## 7. App marketplace (phase 3)
 
@@ -127,7 +127,7 @@ Answers are recorded in document 02, section 9.
 4. **Two-way sync with incumbents:** Not in v1; Jira and Linear sync stay as later candidates.
 11. **AI:** Confirmed. A Claude-powered assistant (summaries, drafting, natural-language filters) with a per-workspace off switch, plus the MCP server above.
 
-### 9.2 Still open
+### 9.2 Closed for now (03 Nov 2026): no additional connectors beyond section 6.1. Revisit after the beta.
 
 5. **Calendar:** One-way ICS feed first (cheap), or two-way Google and Outlook sync in phase 2?
 6. **Email capture:** Create tasks from forwarded Gmail or Outlook mail in v1?

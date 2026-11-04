@@ -1,10 +1,10 @@
-# Meridian
+# TaskParty
 
-**Working name. See docs/02-prd.md, section 1.3 for naming options.**
+Free for all workspaces during the beta. Early adopters receive a reduced price when paid tiers launch.
 
-Meridian is a project management and team task management suite for cross-functional teams. It combines the scheduling depth of Asana and Smartsheet, the speed of Linear, and the visual flexibility of Monday.com in one product that looks and behaves like it belongs alongside the Microsoft 365 applications teams already use.
+TaskParty is a project management and team task management suite for cross-functional teams. It combines the scheduling depth of Asana and Smartsheet, the speed of Linear, and the visual flexibility of Monday.com in one product that looks and behaves like it belongs alongside the Microsoft 365 applications teams already use.
 
-This repository holds the product, design, and engineering documentation for Meridian, followed by the application itself.
+This repository holds the product, design, and engineering documentation for TaskParty, followed by the application itself.
 
 ## Status
 

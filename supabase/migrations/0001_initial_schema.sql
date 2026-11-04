@@ -1,4 +1,4 @@
--- Meridian initial schema
+-- TaskParty initial schema
 -- Version 1.0, 03 Nov 2026
 -- Postgres 16 on Supabase. Executable form of docs/06-data-model.md.
 -- Conventions: snake_case, uuid primary keys (uuidv7 where available), timestamptz,

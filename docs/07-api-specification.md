@@ -4,7 +4,7 @@ Version 1.0, 03 Nov 2026. Owner: Engineering.
 
 ## 1. Two surfaces, one service layer
 
-Meridian exposes the same domain services through two surfaces:
+TaskParty exposes the same domain services through two surfaces:
 
 1. **Server Actions** used by the first-party web client. Typed end to end, no versioning, change freely.
 2. **Public REST API** at `/api/v1` for integrations, scripts, and the marketplace. Versioned, documented with OpenAPI, stable.
@@ -14,7 +14,7 @@ Both call functions in `/lib/services`. Authorization (document 08) and validati
 ## 2. Public REST API conventions
 
 - Base URL: `https://app.<domain>/api/v1`
-- Authentication: `Authorization: Bearer mrd_live_...` (API key) or an OAuth 2.0 access token (phase 3 marketplace).
+- Authentication: `Authorization: Bearer tp_live_...` (API key) or an OAuth 2.0 access token (phase 3 marketplace).
 - Workspace scoping: API keys belong to one workspace; all resources are implicitly scoped to it.
 - Content type: `application/json; charset=utf-8`.
 - IDs: UUIDs. Tasks also accept their human key (`MKT-142`) in path parameters.

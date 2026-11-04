@@ -52,7 +52,7 @@ The site reads as a serious business software company, not a startup landing pag
 
 ## 4. Pricing page
 
-Tiers are a proposal for the product owner's decision (document 02, section 9, question 3):
+Decision (03 Nov 2026): TaskParty is free for every workspace during the beta, and workspaces created during the beta receive an early-adopter discount for life when paid tiers launch. The pricing page during beta shows one message ("Free while in beta. Early adopters keep a reduced price.") with a sign-up button and a short FAQ. The tiers below are the draft for the paid launch and stay unpublished until then:
 
 | | Free | Team | Business | Enterprise |
 |---|---|---|---|---|

@@ -157,7 +157,7 @@ Account: Profile (Clerk `<UserProfile>`), Notifications (matrix of type by chann
 
 Routes: `/projects/[key]/forms`, `/projects/[key]/forms/[id]/edit`, public `/f/[token]`.
 
-Builder: two-pane; left is the form canvas with drag-reorderable fields, right is the properties panel (label, help text, required, map to task field, conditional visibility). Public page: single column, project color accent, Meridian attribution in caption-1 unless the workspace plan removes it.
+Builder: two-pane; left is the form canvas with drag-reorderable fields, right is the properties panel (label, help text, required, map to task field, conditional visibility). Public page: single column, project color accent, TaskParty attribution in caption-1 unless the workspace plan removes it.
 
 ## 15. Automations (phase 2)
 

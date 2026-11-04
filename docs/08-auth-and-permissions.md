@@ -4,16 +4,16 @@ Version 1.0, 03 Nov 2026. Owner: Engineering.
 
 ## 1. Summary
 
-Clerk is the identity provider. It owns sign-up, sign-in, sessions, multi-factor authentication, organizations (workspaces), invitations, and later enterprise SSO. Meridian owns authorization: it decides what a signed-in member may see and do, using membership and role data mirrored from Clerk plus its own project-level roles.
+Clerk is the identity provider. It owns sign-up, sign-in, sessions, multi-factor authentication, organizations (workspaces), invitations, and later enterprise SSO. TaskParty owns authorization: it decides what a signed-in member may see and do, using membership and role data mirrored from Clerk plus its own project-level roles.
 
 ## 2. Clerk configuration
 
 ### 2.1 Application settings (Clerk Dashboard)
 
 - Sign-in methods: email with code, Google, Microsoft. Password sign-in enabled as a fallback. Passkeys enabled.
-- Multi-factor: optional for all users; required for workspace owners and admins (enforced by Meridian, see section 4.3).
+- Multi-factor: optional for all users; required for workspace owners and admins (enforced by TaskParty, see section 4.3).
 - Organizations: enabled. Members can create organizations. Maximum memberships per user: unlimited.
-- Organization roles: `org:owner`, `org:admin`, `org:member`, `org:guest` (custom role). Permissions in Clerk are informational; Meridian enforces its own matrix.
+- Organization roles: `org:owner`, `org:admin`, `org:member`, `org:guest` (custom role). Permissions in Clerk are informational; TaskParty enforces its own matrix.
 - Session token customization: add `role` claim with value `authenticated` (required by the Supabase third-party auth integration) and keep `org_id` and `org_role` in the token.
 - Account Portal: enabled for hosted sign-in pages during Phase 0; replaced by in-app `/sign-in` and `/sign-up` routes with Clerk components styled to the design system in Phase 1.
 - Webhooks: `user.created`, `user.updated`, `user.deleted`, `organization.created`, `organization.updated`, `organization.deleted`, `organizationMembership.created`, `organizationMembership.updated`, `organizationMembership.deleted`, `organizationInvitation.accepted` pointed at `/api/webhooks/clerk`, verified with the Svix signing secret.
@@ -62,16 +62,16 @@ export const config = {
 
 ### 2.3 Membership sync
 
-The Clerk webhook handler upserts `users`, `workspaces`, and `workspace_members`. Clerk role to Meridian role mapping:
+The Clerk webhook handler upserts `users`, `workspaces`, and `workspace_members`. Clerk role to TaskParty role mapping:
 
-| Clerk org role | Meridian workspace role |
+| Clerk org role | TaskParty workspace role |
 |---|---|
 | org:owner | owner |
 | org:admin | admin |
 | org:member | member |
 | org:guest | guest |
 
-Meridian never writes membership back to Clerk except through explicit admin actions (invite, change role, remove), which call the Clerk Backend API and then rely on the webhook for the mirror. A nightly Inngest job reconciles drift by listing organization memberships.
+TaskParty never writes membership back to Clerk except through explicit admin actions (invite, change role, remove), which call the Clerk Backend API and then rely on the webhook for the mirror. A nightly Inngest job reconciles drift by listing organization memberships.
 
 ### 2.4 Active workspace
 
@@ -135,7 +135,7 @@ Legend: Y allowed, N denied, O only own items (for comments, own comments).
 
 ### 4.3 Elevated action requirements
 
-Deleting a workspace, transferring ownership, exporting the workspace, and revoking all API keys require a recent (within 10 minutes) second-factor verification. Meridian checks Clerk's `fva` (factor verification age) claim and prompts re-verification through Clerk's `reverification` helper.
+Deleting a workspace, transferring ownership, exporting the workspace, and revoking all API keys require a recent (within 10 minutes) second-factor verification. TaskParty checks Clerk's `fva` (factor verification age) claim and prompts re-verification through Clerk's `reverification` helper.
 
 ## 5. Enforcement
 
@@ -145,7 +145,7 @@ Every service function receives an `Actor` (`{ userId, workspaceId, workspaceRol
 
 ### 5.2 API keys
 
-API keys carry the workspace and scopes (`read`, `write`, `admin`). They act as a synthetic actor with workspace role `admin` limited by scopes; per-project visibility follows the same rules as a workspace admin. Keys are hashed with SHA-256 at rest; the prefix (`mrd_live_a1b2c3d4`) is stored for display.
+API keys carry the workspace and scopes (`read`, `write`, `admin`). They act as a synthetic actor with workspace role `admin` limited by scopes; per-project visibility follows the same rules as a workspace admin. Keys are hashed with SHA-256 at rest; the prefix (`tp_live_a1b2c3d4`) is stored for display.
 
 ### 5.3 Database layer
 

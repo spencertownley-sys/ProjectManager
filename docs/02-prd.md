@@ -1,6 +1,6 @@
 # 02. Product Requirements Document
 
-Product: Meridian (working name)
+Product: TaskParty
 Version 1.0, 03 Nov 2026
 Owner: Spencer Townley (Product)
 Status: Approved for build planning
@@ -17,11 +17,11 @@ Organizations run two or three work management tools because no single product s
 
 ### 1.3 Product name
 
-Meridian is the working name. Alternatives under consideration: Cadence, Waypoint, Northline, Keel. The final name must have an available .com domain, no trademark conflict in software (USPTO class 9 and 42), and a short, pronounceable form. A decision is required before the marketing site build (document 13).
+The product name is TaskParty (decided 03 Nov 2026). Before the marketing site build (document 13): confirm the domain (taskparty.com or taskparty.app) and run a trademark search in software (USPTO classes 9 and 42). The app subdomain is app.taskparty.<tld>; email sends from mail.taskparty.<tld>.
 
 ### 1.4 Positioning
 
-For teams of 5 to 500 who want the scheduling depth of Asana and the speed of Linear in a product that looks like it belongs next to Outlook, Teams, and Planner. Unlike all-in-one tools, Meridian ships one coherent set of views over one data model, with Gantt, Workload, and Dashboards included in the core plan.
+For teams of 5 to 500 who want the scheduling depth of Asana and the speed of Linear in a product that looks like it belongs next to Outlook, Teams, and Planner. Unlike all-in-one tools, TaskParty ships one coherent set of views over one data model, with Gantt, Workload, and Dashboards included in the core plan.
 
 ### 1.5 Goals
 
@@ -182,7 +182,7 @@ Detailed in document 12. Summary:
 | NFR-PERF-02 | Optimistic UI for all task mutations; server confirmation P95 under 400 ms. |
 | NFR-PERF-03 | Views remain at 60 fps while scrolling 10,000 rows. |
 | NFR-AVAIL-01 | 99.9 percent monthly availability for the application and API. |
-| NFR-SEC-01 | Authentication exclusively through Clerk. No passwords stored by Meridian. |
+| NFR-SEC-01 | Authentication exclusively through Clerk. No passwords stored by TaskParty. |
 | NFR-SEC-02 | All data encrypted in transit (TLS 1.2 or higher) and at rest. |
 | NFR-SEC-03 | Authorization enforced server-side on every read and write; row-level security in the database as a second layer. |
 | NFR-SEC-04 | Webhook payloads signed with HMAC SHA-256; API keys hashed at rest. |
@@ -223,7 +223,7 @@ North star metric: weekly active workspaces where at least three members each co
 |---|---|---|
 | Gantt and Workload are expensive to build well | Schedule | Build Gantt rendering in-house on a shared timeline engine used by Timeline and Workload; evaluate SVAR React Gantt (MIT) as an accelerator for v1 (document 05, decision 7) |
 | Feature breadth tempts scope creep | Quality | Phase gates in document 04; every feature must map to a persona job |
-| Clerk Organizations model may not match guest and multi-workspace needs | Design | Model guests as workspace members with project-scoped roles stored in Meridian, with Clerk holding membership only (document 08) |
+| Clerk Organizations model may not match guest and multi-workspace needs | Design | Model guests as workspace members with project-scoped roles stored in TaskParty, with Clerk holding membership only (document 08) |
 | Segoe UI is not licensed for web embedding | Visual fidelity | System font stack on Windows, Selawik (MIT, metric-compatible) self-hosted elsewhere (document 09) |
 | Realtime at scale | Cost | Supabase Realtime per project channel; fall back to polling for inactive tabs |
 
@@ -236,12 +236,15 @@ North star metric: weekly active workspaces where at least three members each co
 3. Engineering connectors: GitHub only for v1. GitLab, Bitbucket, Azure DevOps, and two-way Jira or Linear sync stay in the later-phase candidate list.
 4. AI assistant confirmed for the roadmap (summaries, drafting, natural-language filters) with a per-workspace off switch. Calendar two-way sync, email capture, cloud drives, and CRM or support connectors stay as candidates, not commitments.
 
+5. Name: TaskParty.
+6. Pricing: free for everyone during the beta. Early adopters (workspaces created during the beta) receive a reduced price for life when paid tiers launch; the discount percentage and the paid tier structure are decided before phase 2 billing is built. The proposed tiers in document 13 remain a draft.
+7. Beta roster: the first workspace is seeded with ten members: Spencer (owner), Jenny, Mary, Amelia, Pete, Anthony, Lisa, Logan, Anisa, Karla. Single assignee per task is the v1 default; the workspace setting for multiple assignees stays in the schema and can be enabled later.
+8. Connectors: no connectors beyond the phase 2 list in document 12, section 6.1. The remaining candidate list in document 12, section 9.2 is closed for now.
+
 ### 9.2 Open
 
-1. Final product name and domain.
-2. Pricing tiers and whether a free tier exists at launch.
-3. Whether to offer single assignee only in v1 (simpler Workload math) or multi-assignee from the start.
-4. Remaining connector candidates in document 12, section 9: design tools, time tracking, incident tools, automation platforms beyond Zapier and Make, and any day-one webhook targets.
+1. Early-adopter discount percentage and paid tier prices (needed before phase 2 billing).
+2. Domain choice between taskparty.com and taskparty.app, subject to availability.
 
 ## 10. Approval
 

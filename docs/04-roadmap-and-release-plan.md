@@ -38,7 +38,7 @@ Scope: every story marked M in document 03.
 - API keys, REST API read and write for core objects, outbound webhooks.
 - Responsive layout.
 
-Exit gate: an internal team of at least 5 people runs a real project in Meridian for two weeks without reverting to another tool; P95 latencies meet NFR-PERF-02; WCAG 2.2 AA audit passes on List, Board, task pane, and settings.
+Exit gate: an internal team of at least 5 people runs a real project in TaskParty for two weeks without reverting to another tool; P95 latencies meet NFR-PERF-02; WCAG 2.2 AA audit passes on List, Board, task pane, and settings.
 
 ### Phase 2: Team scale (5 to 6 weeks)
 

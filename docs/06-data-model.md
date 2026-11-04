@@ -32,13 +32,13 @@ Clerk Org  ---mirror---> workspaces
 ## 2. Core entities
 
 ### users
-Mirror of Clerk users, populated by the `user.created` and `user.updated` Clerk webhooks. `clerk_user_id` is the join key for RLS. Meridian never stores credentials.
+Mirror of Clerk users, populated by the `user.created` and `user.updated` Clerk webhooks. `clerk_user_id` is the join key for RLS. TaskParty never stores credentials.
 
 ### workspaces
 One per Clerk Organization. `slug` appears in URLs (`/w/acme`). Workspace-level configuration lives here: estimate unit (points or hours), whether tasks may have multiple assignees, the label used for cycles (Cycle, Sprint, Iteration), first day of week, plan.
 
 ### workspace_members
-Membership mirror with the Meridian role (owner, admin, member, guest) and weekly capacity hours for Workload. Clerk roles map to these on sync (document 08, section 3).
+Membership mirror with the TaskParty role (owner, admin, member, guest) and weekly capacity hours for Workload. Clerk roles map to these on sync (document 08, section 3).
 
 ### teams and team_members
 Optional grouping inside a workspace. Projects with `privacy = team` are visible to team members.
@@ -129,3 +129,5 @@ User-facing entities carry `deleted_at`. Deleted tasks are restorable for 30 day
 ## 8. Reference dataset for performance testing
 
 A seed script (`scripts/seed.ts`, built in Phase 0) generates: 3 workspaces, 20 projects, 10,000 tasks in the largest project with 2,000 dependencies, 30 custom fields, 50 users, 100,000 events. Performance budgets in document 15 are measured against this dataset.
+
+The beta seed (`scripts/seed-beta.ts`) creates the real first workspace, "TaskParty", with ten members (Spencer as owner, then Jenny, Mary, Amelia, Pete, Anthony, Lisa, Logan, Anisa, Karla) as placeholder user rows that are linked to Clerk accounts by email when each person signs in, plus a starter project so the first session is not empty.
