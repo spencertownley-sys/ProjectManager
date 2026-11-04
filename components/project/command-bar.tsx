@@ -106,6 +106,12 @@ const operatorsByKind: Record<FieldDef["kind"], Array<{ op: FilterOperator; labe
   ],
 };
 
+/** A new filter row for a field with its first operator and an empty value, shared with the Table header menu. */
+export function defaultFilterFor(def: FieldDef): Filter {
+  const first = operatorsByKind[def.kind][0];
+  return { kind: "filter", field: def.ref, op: first.op, value: first.needsValue ? (["status", "person", "priority", "section", "cycle", "select", "tags"].includes(def.kind) ? [] : "") : undefined };
+}
+
 function optionsFor(def: FieldDef, project: ProjectInfo, members: ProjectInfo["members"], tags: Array<{ id: string; name: string }>) {
   switch (def.kind) {
     case "status":
@@ -140,11 +146,13 @@ type Props = {
   onSaveView: () => void;
   onShare: () => void;
   viewOptions?: React.ReactNode;
+  /** Extra items for the overflow menu, for example a view's export action. */
+  extraMenuItems?: React.ReactNode;
   canEdit: boolean;
   tags?: Array<{ id: string; name: string }>;
 };
 
-export function CommandBar({ project, spec, setSpec, onReset, onQuickAdd, onSaveView, onShare, viewOptions, canEdit, tags = [] }: Props) {
+export function CommandBar({ project, spec, setSpec, onReset, onQuickAdd, onSaveView, onShare, viewOptions, extraMenuItems, canEdit, tags = [] }: Props) {
   const { workspace, members } = useWorkspace();
   const defs = React.useMemo(() => fieldDefs(project, workspace.cycleLabel), [project, workspace.cycleLabel]);
   const filters = spec.filters.items.filter((i): i is Filter => i.kind === "filter");
@@ -155,10 +163,7 @@ export function CommandBar({ project, spec, setSpec, onReset, onQuickAdd, onSave
   const updateFilter = (index: number, patch: Partial<Filter>) =>
     setSpec((prev) => ({ ...prev, filters: { ...prev.filters, items: prev.filters.items.map((it, i) => (i === index && it.kind === "filter" ? { ...it, ...patch } : it)) } }));
   const removeFilter = (index: number) => setSpec((prev) => ({ ...prev, filters: { ...prev.filters, items: prev.filters.items.filter((_, i) => i !== index) } }));
-  const addFilter = (def: FieldDef) => {
-    const first = operatorsByKind[def.kind][0];
-    setSpec((prev) => ({ ...prev, filters: { ...prev.filters, items: [...prev.filters.items, { kind: "filter", field: def.ref, op: first.op, value: first.needsValue ? (["status", "person", "priority", "section", "cycle", "select", "tags"].includes(def.kind) ? [] : "") : undefined }] } }));
-  };
+  const addFilter = (def: FieldDef) => setSpec((prev) => ({ ...prev, filters: { ...prev.filters, items: [...prev.filters.items, defaultFilterFor(def)] } }));
 
   return (
     <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border bg-surface px-3">
@@ -360,6 +365,12 @@ export function CommandBar({ project, spec, setSpec, onReset, onQuickAdd, onSave
           <MenuItem icon={<Link16Regular />} onSelect={onShare}>
             Copy link to this view
           </MenuItem>
+          {extraMenuItems ? (
+            <>
+              <MenuSeparator />
+              {extraMenuItems}
+            </>
+          ) : null}
         </MenuContent>
       </Menu>
     </div>

@@ -20,6 +20,8 @@ import type { ProjectInfo, ViewProps } from "@/components/views/types";
 import { viewOrder, viewMeta } from "@/components/views/view-registry";
 import { ListView } from "@/components/views/list/list-view";
 import { BoardViewOptions } from "@/components/views/board/board-options";
+import { ArrowDownload16Regular } from "@fluentui/react-icons";
+import { tableColumns, visibleTableColumns, rowsToCsv } from "@/lib/client/table";
 import { useProjectTasks, type ProjectTasksData } from "@/lib/client/queries";
 import { useProjectSpec } from "@/lib/client/spec-store";
 import { useProjectRealtime } from "@/lib/client/realtime";
@@ -43,6 +45,8 @@ type Props = {
   savedViewId: string | null;
   initialData: ProjectTasksData;
   initialSpec: ViewSpec;
+  /** Dev preview only: serve these rows for every spec instead of querying the server. */
+  staticData?: ProjectTasksData;
 };
 
 const healthMeta: Record<string, { label: string; color: string }> = {
@@ -53,15 +57,15 @@ const healthMeta: Record<string, { label: string; color: string }> = {
   complete: { label: "Complete", color: "blue" },
 };
 
-export function ProjectWorkspace({ project, viewType, savedViewId, initialData, initialSpec }: Props) {
+export function ProjectWorkspace({ project, viewType, savedViewId, initialData, initialSpec, staticData }: Props) {
   const router = useRouter();
   const params = useSearchParams();
-  const { slug, today, members, user } = useWorkspace();
+  const { slug, today, members, user, workspace } = useWorkspace();
   const { toast } = useToast();
   const openTask = useViewState((s) => s.openTask);
   const savedView = savedViewId ? project.views.find((v) => v.id === savedViewId) ?? null : null;
   const { spec, setSpec, reset, shareUrl } = useProjectSpec(project.id, savedView?.spec ?? (params.get("spec") ? null : initialSpec));
-  const tasks = useProjectTasks(project.id, spec, JSON.stringify(spec) === JSON.stringify(initialSpec) ? initialData : undefined);
+  const tasks = useProjectTasks(project.id, spec, JSON.stringify(spec) === JSON.stringify(initialSpec) ? initialData : undefined, staticData);
   useProjectRealtime(project.id);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
   const [saveOpen, setSaveOpen] = React.useState(false);
@@ -105,6 +109,19 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
   const share = async () => {
     await navigator.clipboard.writeText(shareUrl());
     toast({ title: "Link copied", kind: "success" });
+  };
+
+  const exportCsv = () => {
+    const columns = visibleTableColumns(tableColumns(groupingCtx.fields, workspace.cycleLabel), spec.visibleFields);
+    const csv = rowsToCsv(rows, columns, groupingCtx);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${project.key.toLowerCase()}-tasks-${today}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: `Exported ${rows.length} tasks`, kind: "success" });
   };
 
   const projectMembers = members.filter((m) => project.members.some((pm) => pm.id === m.id));
@@ -200,6 +217,13 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
         onShare={share}
         canEdit={canEdit}
         viewOptions={viewType === "board" ? <BoardViewOptions project={project} spec={spec} setSpec={setSpec} /> : undefined}
+        extraMenuItems={
+          viewType === "table" ? (
+            <MenuItem icon={<ArrowDownload16Regular />} onSelect={exportCsv}>
+              Export CSV
+            </MenuItem>
+          ) : undefined
+        }
       />
 
       <div className="relative min-h-0 flex-1 bg-canvas">

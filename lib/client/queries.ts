@@ -5,7 +5,7 @@ import * as React from "react";
 import type { TaskRow, DependencyRow } from "@/lib/query-engine/types";
 import type { ViewSpec } from "@/lib/validation/view-spec";
 import type { UpdateTaskInput, CreateTaskInput, MoveTaskInput } from "@/lib/validation/task";
-import { queryProjectTasksAction, queryMyWorkAction, updateTaskAction, createTaskAction, moveTaskAction, deleteTaskAction, restoreTaskAction, getTaskDetailAction } from "@/lib/actions/tasks";
+import { queryProjectTasksAction, queryMyWorkAction, updateTaskAction, createTaskAction, moveTaskAction, deleteTaskAction, restoreTaskAction, getTaskDetailAction, bulkUpdateTasksAction } from "@/lib/actions/tasks";
 import type { TaskDetail } from "@/lib/services/tasks";
 import { useWorkspace } from "./workspace-context";
 import { useToast } from "@/components/ui/toast";
@@ -21,16 +21,21 @@ export const keys = {
   taskDetail: (slug: string, id: string) => ["task", slug, id] as const,
 };
 
-export function useProjectTasks(projectId: string, spec: ViewSpec, initialData?: ProjectTasksData) {
+/**
+ * Tasks for a project view. `staticData` (the dev preview) answers every spec with the same rows instead of
+ * calling the server, so grouping and view options can be exercised without a database.
+ */
+export function useProjectTasks(projectId: string, spec: ViewSpec, initialData?: ProjectTasksData, staticData?: ProjectTasksData) {
   const { slug, today } = useWorkspace();
   return useQuery({
     queryKey: keys.projectTasks(slug, projectId, spec),
     queryFn: async () => {
+      if (staticData) return staticData;
       const res = await queryProjectTasksAction(slug, projectId, spec, today);
       if (!res.ok) throw new Error(res.error.message);
       return res.data as ProjectTasksData;
     },
-    initialData,
+    initialData: staticData ?? initialData,
     staleTime: 15_000,
     placeholderData: (prev) => prev,
   });
@@ -171,5 +176,25 @@ export function useTaskMutations() {
     onSettled: () => invalidate(),
   });
 
-  return { update, create, move, remove, invalidate };
+  /** Applies one patch to many tasks (fill handle, paste) with the same optimistic update per task. */
+  const bulk = useMutation({
+    mutationFn: async (input: { ids: string[]; patch: Record<string, unknown>; optimistic?: (row: TaskRow) => TaskRow }) => {
+      const res = await bulkUpdateTasksAction(slug, { ids: input.ids, patch: input.patch });
+      if (!res.ok) throw new Error(res.error.message);
+      return res.data;
+    },
+    onMutate: async (input) => {
+      await client.cancelQueries({ queryKey: keys.allTasks(slug) });
+      const snapshot = client.getQueriesData({ queryKey: keys.allTasks(slug) });
+      if (input.optimistic) for (const id of input.ids) patchCachedTask(client, slug, id, input.optimistic);
+      return { snapshot };
+    },
+    onError: (error, _input, context) => {
+      context?.snapshot.forEach(([key, data]) => client.setQueryData(key, data));
+      toast({ title: "Could not update the tasks", description: error.message, kind: "danger" });
+    },
+    onSettled: () => invalidate(),
+  });
+
+  return { update, create, move, remove, bulk, invalidate };
 }

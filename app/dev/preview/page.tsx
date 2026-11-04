@@ -25,6 +25,7 @@ export default async function PreviewPage({
   const { view, spec } = await searchParams;
   const rows = fixtureRows();
   const project = fixtureProject();
+  const data = { rows, total: rows.length, truncated: false, dependencies: fixtureDependencies() };
   const viewType = (
     ["list", "board", "table", "gantt", "timeline", "calendar"].includes(view ?? "") ? view : "list"
   ) as ViewType;
@@ -82,7 +83,8 @@ export default async function PreviewPage({
             project={project}
             viewType={viewType}
             savedViewId={null}
-            initialData={{ rows, total: rows.length, truncated: false, dependencies: fixtureDependencies() }}
+            initialData={data}
+            staticData={data}
             initialSpec={spec ? decodeViewSpec(spec) : defaultViewSpec()}
           />
         </AppShell>
