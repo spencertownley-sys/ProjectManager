@@ -11,8 +11,8 @@ This repository holds the product, design, and engineering documentation for Tas
 | Phase | State |
 |---|---|
 | Documentation set | Complete (v1.0, November 2026) |
-| Application scaffold | Not started |
-| MVP build | Not started |
+| Application scaffold | Complete (Phase 0) |
+| MVP build | In progress: shell, task pane, List view, Home, My work done; Board, Table, Gantt, Timeline, Calendar next. See HANDOFF.md |
 
 ## Document index
 
@@ -39,6 +39,7 @@ Read the documents in order the first time. Each one assumes the ones before it.
 
 Supporting files:
 
+- `HANDOFF.md` is the current build state and the next steps for a Claude Code session.
 - `supabase/migrations/0001_initial_schema.sql` is the executable form of the data model.
 - `.env.example` lists every environment variable the application needs.
 - `.github/workflows/ci.yml` runs lint, type checks, and tests on every pull request.

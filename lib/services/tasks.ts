@@ -322,6 +322,17 @@ export async function updateTask(ctx: ServiceContext, input: UpdateTaskInput): P
   return result.task;
 }
 
+/** Marks a task done (first status in the done category) or reopens it (first status outside done). */
+export async function setTaskCompleted(ctx: ServiceContext, id: string, completed: boolean): Promise<TaskRecord> {
+  const existing = await loadTask(ctx.db, id);
+  const [project] = await ctx.db.select({ workflowId: schema.projects.workflowId }).from(schema.projects).where(eq(schema.projects.id, existing.projectId));
+  if (!project) throw new NotFoundError("Project");
+  const statusRows = await ctx.db.select().from(schema.statuses).where(eq(schema.statuses.workflowId, project.workflowId)).orderBy(asc(schema.statuses.position));
+  const target = completed ? statusRows.find((s) => s.category === "done") : statusRows.find((s) => s.category !== "done");
+  if (!target) throw new ValidationError("The workflow has no matching status");
+  return updateTask(ctx, { id, statusId: target.id });
+}
+
 export async function moveTask(ctx: ServiceContext, input: MoveTaskInput): Promise<TaskRecord> {
   const { db, actor } = ctx;
   const existing = await loadTask(db, input.id);

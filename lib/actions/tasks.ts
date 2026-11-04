@@ -23,6 +23,13 @@ export async function updateTaskAction(workspaceSlug: string, input: unknown) {
   });
 }
 
+export async function setTaskCompletedAction(workspaceSlug: string, id: string, completed: boolean) {
+  return run(async () => {
+    const session = await getCurrentSession(slug.parse(workspaceSlug));
+    return tasks.setTaskCompleted(session, z.string().uuid().parse(id), completed);
+  });
+}
+
 export async function moveTaskAction(workspaceSlug: string, input: unknown) {
   return run(async () => {
     const session = await getCurrentSession(slug.parse(workspaceSlug));
