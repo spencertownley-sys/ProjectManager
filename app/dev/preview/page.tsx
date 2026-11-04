@@ -12,6 +12,7 @@ import {
   fixtureNotifications,
 } from "@/lib/dev/fixtures";
 import { InboxView } from "@/components/inbox/inbox-view";
+import { SettingsPreview, type SettingsPreviewPanel } from "@/components/settings/settings-preview";
 import { defaultViewSpec, decodeViewSpec } from "@/lib/validation/view-spec";
 import type { ViewType } from "@/lib/db/schema";
 
@@ -21,10 +22,10 @@ export const dynamic = "force-dynamic";
 export default async function PreviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; theme?: string; spec?: string }>;
+  searchParams: Promise<{ view?: string; theme?: string; spec?: string; panel?: string }>;
 }) {
   if (process.env.NODE_ENV === "production" && process.env.TP_ENABLE_PREVIEW !== "1") notFound();
-  const { view, spec } = await searchParams;
+  const { view, spec, panel } = await searchParams;
   const rows = fixtureRows();
   const project = fixtureProject();
   const data = { rows, total: rows.length, truncated: false, dependencies: fixtureDependencies() };
@@ -81,7 +82,19 @@ export default async function PreviewPage({
             unreadCount: 3,
           }}
         >
-          {view === "inbox" ? (
+          {view === "settings" ? (
+            <SettingsPreview
+              panel={(panel ?? "members") as SettingsPreviewPanel}
+              members={fixturePeople.map((p, i) => ({ id: p.id, displayName: p.displayName, email: p.email ?? "", avatarUrl: p.avatarUrl, role: i === 0 ? "owner" : i === 1 ? "admin" : i === 9 ? "guest" : "member", weeklyCapacityHours: 40, joinedAt: "2026-09-15T09:00:00Z" }))}
+              fields={[
+                { id: "f-team", name: "Team", type: "single_select", config: { options: [{ id: "o1", name: "Web", color: "blue" }, { id: "o2", name: "Email", color: "teal" }] }, isRequired: false, position: 0, projectId: null },
+                { id: "f-budget", name: "Budget", type: "currency", config: { currency: "USD", precision: 2 }, isRequired: true, position: 1, projectId: null },
+                { id: "f-launch", name: "Launch region", type: "text", config: {}, isRequired: false, position: 2, projectId: null },
+              ]}
+              statuses={project.statuses.map((s) => ({ id: s.id, name: s.name, category: s.category, color: s.color, wipLimit: s.wipLimit }))}
+              project={{ id: project.id, key: project.key, name: project.name, color: project.color, autoSchedule: project.autoSchedule }}
+            />
+          ) : view === "inbox" ? (
             <InboxView initialItems={fixtureNotifications()} staticItems={fixtureNotifications()} />
           ) : (
             <ProjectWorkspace

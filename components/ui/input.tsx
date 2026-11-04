@@ -59,10 +59,15 @@ export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLab
 }
 
 export function Field({ label, hint, error, children, className }: { label: string; hint?: string; error?: string; children: React.ReactNode; className?: string }) {
+  // Associate the label with a single form control child so screen readers and tests can find it by name.
+  const generated = React.useId();
+  const child = React.isValidElement<{ id?: string }>(children) && typeof children.type === "string" || (React.isValidElement<{ id?: string }>(children) && (children.type === Input || children.type === Textarea || children.type === InlineInput)) ? children : null;
+  const control = child ? React.cloneElement(child, { id: child.props.id ?? generated }) : children;
+  const htmlFor = child ? (child.props.id ?? generated) : undefined;
   return (
     <div className={cn("flex flex-col gap-1", className)}>
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={htmlFor}>{label}</Label>
+      {control}
       {error ? <p className="type-caption-1 text-danger">{error}</p> : hint ? <p className="type-caption-1 text-fg-tertiary">{hint}</p> : null}
     </div>
   );

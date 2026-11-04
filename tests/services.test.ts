@@ -8,6 +8,8 @@ import { createProject, getProject, createSection, saveBaseline, getBaselineTask
 import { createTask, updateTask, moveTask, queryProjectTasks, addDependency, addComment, getTaskDetail, queryMyWork, deleteTask } from "@/lib/services/tasks";
 import { saveView } from "@/lib/services/views";
 import { createNotifications, listNotifications, markNotifications, unreadCount } from "@/lib/services/notifications";
+import { inviteMember, changeMemberRole, removeMember, listPendingInvitations, updateTag, deleteTag, listTagsWithCounts, createTag, listNotificationPreferences, setNotificationPreference, type MembershipDirectory } from "@/lib/services/workspaces";
+import { createField, updateField, deleteField, listLibraryFields, listProjectFields, attachField, detachField, reorderProjectFields } from "@/lib/services/fields";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 import { eq } from "drizzle-orm";
 
@@ -178,5 +180,70 @@ describe("services on PGlite", () => {
     expect(await listNotifications(ctx)).toHaveLength(1);
     // Another member's notification is untouched.
     expect(await unreadCount({ db, actor: owner })).toBe(1);
+  });
+
+  it("manages members through the directory with role rules", async () => {
+    const calls: string[] = [];
+    const directory: MembershipDirectory = {
+      invite: async (i) => { calls.push(`invite:${i.emailAddress}:${i.role}`); return { id: "inv_1" }; },
+      listInvitations: async () => [{ id: "inv_1", emailAddress: "new@example.com", role: "org:member", createdAt: "2026-11-04T00:00:00Z" }],
+      revokeInvitation: async (i) => { calls.push(`revoke:${i.invitationId}`); },
+      updateRole: async (i) => { calls.push(`role:${i.userId}:${i.role}`); },
+      remove: async (i) => { calls.push(`remove:${i.userId}`); },
+    };
+    await inviteMember({ db, actor: owner }, directory, { email: "New@Example.com", role: "admin" });
+    expect(calls).toContain("invite:new@example.com:org:admin");
+    await expect(inviteMember({ db, actor: member }, directory, { email: "x@example.com", role: "admin" })).rejects.toThrow();
+    await expect(inviteMember({ db, actor: owner }, directory, { email: "jenny@example.com", role: "member" })).rejects.toThrow(/already a member/);
+    expect((await listPendingInvitations({ db, actor: owner }, directory))[0]).toMatchObject({ emailAddress: "new@example.com", role: "member" });
+    await expect(changeMemberRole({ db, actor: member }, directory, { userId: owner.userId, role: "member" })).rejects.toThrow();
+    await expect(changeMemberRole({ db, actor: owner }, directory, { userId: owner.userId, role: "member" })).rejects.toThrow(/at least one owner/);
+    await changeMemberRole({ db, actor: owner }, directory, { userId: member.userId, role: "admin" });
+    expect(calls).toContain("role:user_member:org:admin");
+    const [row] = await db.select().from(schema.workspaceMembers).where(eq(schema.workspaceMembers.userId, member.userId));
+    expect(row.role).toBe("admin");
+    await changeMemberRole({ db, actor: owner }, directory, { userId: member.userId, role: "member" });
+    await expect(removeMember({ db, actor: owner }, directory, owner.userId)).rejects.toThrow(/yourself/);
+  });
+
+  it("manages the fields library and project fields", async () => {
+    const ctx = { db, actor: owner };
+    await expect(createField({ db, actor: member }, { projectId: null, name: "Nope", type: "text", config: {}, isRequired: false })).rejects.toThrow();
+    await expect(createField(ctx, { projectId: null, name: "Team", type: "single_select", config: {}, isRequired: false })).rejects.toThrow(/option/);
+    const team = await createField(ctx, { projectId: null, name: "Team", type: "single_select", config: { options: [{ id: "o1", name: "Web", color: "blue" }] }, isRequired: false });
+    const budget = await createField(ctx, { projectId, name: "Budget", type: "currency", config: { currency: "USD", precision: 2 }, isRequired: false });
+    expect((await listLibraryFields(ctx)).map((f) => f.name)).toContain("Team");
+    let pf = await listProjectFields(ctx, projectId);
+    expect(pf.attached.map((f) => f.name)).toEqual(["Budget"]);
+    expect(pf.library.map((f) => f.name)).toContain("Team");
+    await attachField(ctx, projectId, team.id);
+    await reorderProjectFields(ctx, projectId, [team.id, budget.id]);
+    pf = await listProjectFields(ctx, projectId);
+    expect(pf.attached.map((f) => f.name)).toEqual(["Team", "Budget"]);
+    expect(pf.library.find((f) => f.id === team.id)).toBeUndefined();
+    await updateField(ctx, { id: team.id, name: "Squad", config: { options: [{ id: "o1", name: "Web" }, { id: "o2", name: "Email" }] } });
+    expect((await listLibraryFields(ctx)).find((f) => f.id === team.id)?.name).toBe("Squad");
+    await detachField(ctx, projectId, team.id);
+    await deleteField(ctx, budget.id);
+    pf = await listProjectFields(ctx, projectId);
+    expect(pf.attached).toHaveLength(0);
+  });
+
+  it("manages tags and notification preferences", async () => {
+    const ctx = { db, actor: owner };
+    const tag = await createTag(ctx, { name: "Web", color: "purple" });
+    await updateTag(ctx, { id: tag.id, name: "Website", color: "teal" });
+    expect((await listTagsWithCounts(ctx)).find((t) => t.id === tag.id)).toMatchObject({ name: "Website", color: "teal", count: 0 });
+    await expect(updateTag({ db, actor: member }, { id: tag.id, name: "x" })).rejects.toThrow();
+    await deleteTag(ctx, tag.id);
+    expect((await listTagsWithCounts(ctx)).find((t) => t.id === tag.id)).toBeUndefined();
+    const prefs = await listNotificationPreferences({ db, actor: member });
+    expect(prefs.find((p) => p.type === "assigned" && p.channel === "email")?.enabled).toBe(true);
+    expect(prefs.find((p) => p.type === "comment" && p.channel === "email")?.enabled).toBe(false);
+    await setNotificationPreference({ db, actor: member }, { type: "comment", channel: "email", enabled: true });
+    await setNotificationPreference({ db, actor: member }, { type: "assigned", channel: "in_app", enabled: false });
+    const after = await listNotificationPreferences({ db, actor: member });
+    expect(after.find((p) => p.type === "comment" && p.channel === "email")?.enabled).toBe(true);
+    expect(after.find((p) => p.type === "assigned" && p.channel === "in_app")?.enabled).toBe(false);
   });
 });
