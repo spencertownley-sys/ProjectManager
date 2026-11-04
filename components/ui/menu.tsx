@@ -110,3 +110,22 @@ export function ContextMenuItem({ className, icon, shortcut, children, destructi
 export function ContextMenuSeparator({ className, ...props }: React.ComponentProps<typeof Cm.Separator>) {
   return <Cm.Separator className={cn("my-1 h-px bg-border", className)} {...props} />;
 }
+export const ContextMenuSub = Cm.Sub;
+export function ContextMenuSubTrigger({ className, children, ...props }: React.ComponentProps<typeof Cm.SubTrigger>) {
+  return (
+    <Cm.SubTrigger className={cn(itemClass, className)} {...props}>
+      <span className="flex-1">{children}</span>
+      <ChevronRight16Regular className="text-fg-tertiary" />
+    </Cm.SubTrigger>
+  );
+}
+export function ContextMenuSubContent({ className, ...props }: React.ComponentProps<typeof Cm.SubContent>) {
+  return (
+    <Cm.Portal>
+      <Cm.SubContent sideOffset={2} className={cn(contentClass, className)} {...props} />
+    </Cm.Portal>
+  );
+}
+export function ContextMenuLabel({ className, ...props }: React.ComponentProps<typeof Cm.Label>) {
+  return <Cm.Label className={cn("px-2 py-1.5 type-caption-1-strong text-fg-tertiary", className)} {...props} />;
+}

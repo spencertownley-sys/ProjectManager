@@ -225,7 +225,7 @@ export function ListView(props: ViewProps & { quickAddSignal?: number }) {
   }
 
   return (
-    <DndContext sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => { setDragging(null); setDropTarget(null); }}>
+    <DndContext id="list-dnd" sensors={sensors} onDragStart={onDragStart} onDragOver={onDragOver} onDragEnd={onDragEnd} onDragCancel={() => { setDragging(null); setDropTarget(null); }}>
       <div ref={parentRef} className="h-full overflow-auto" role="grid" aria-label={`${project.name} list`} aria-rowcount={rows.length}>
         <div className="sticky top-0 z-10 flex h-8 items-center border-b border-border bg-surface px-3 type-caption-1-strong text-fg-secondary" role="row">
           <span className="w-7" />

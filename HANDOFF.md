@@ -30,6 +30,7 @@ Everything below passes `pnpm typecheck`, `pnpm lint`, and `pnpm vitest run` (43
 | Task pane | `components/task/*` (fields, rich text, comments, subtasks, dependencies, activity, new task) | Done |
 | Project workspace | `components/project/*` (header, view tabs, command bar with filter builder, save view, overview pane, new project dialog, projects table) | Done |
 | List view | `components/views/list/list-view.tsx` (virtualized, grouped, drag, inline edit, keyboard, bulk bar) | Done, screenshot verified |
+| Board view | `components/views/board/board-view.tsx`, `board-options.tsx` (columns by status, assignee, priority, section, or custom select; swimlanes from Group; WIP limits with flash; compact, standard, detailed cards; pointer and keyboard drag with live region; quick add top and bottom; collapse; status column menu), pure helpers in `lib/client/board.ts` with tests, journeys in `tests/e2e/board.spec.ts` | Done, screenshot verified |
 | Pages | `/app`, `/onboarding`, `/w/[slug]/home`, `/my-work`, `/projects`, `/projects/[key]/[view]`, `/projects/[key]/views/[id]`, `/api/health`, `/api/inngest` | Done |
 | Dev preview | `app/dev/preview/page.tsx` with `lib/dev/fixtures.ts`; `scripts/screenshot.mjs` | Done. `http://localhost:3000/dev/preview?view=list` renders without Clerk or a database |
 
@@ -37,7 +38,7 @@ Everything below passes `pnpm typecheck`, `pnpm lint`, and `pnpm vitest run` (43
 
 Each view must implement the `ViewProps` contract in `components/views/types.ts` and follow `components/views/list/list-view.tsx` as the reference for selection, keyboard, quick add, optimistic mutations (`useTaskMutations` in `lib/client/queries.ts`), and drag and drop. Specs are in `docs/11-views-specification.md`. Replace the placeholder files that currently export an EmptyState.
 
-1. **Board view** `components/views/board/board-view.tsx` (docs/11 section 3): status columns, swimlanes, WIP limits, card densities, dnd-kit drag between columns with keyboard support, quick add per column.
+1. **Board view**: done (see the table above). Board options live in `spec.options` as `boardColumns`, `boardDensity`, and `boardCollapsed`; swimlanes reuse `spec.groupBy`.
 2. **Table view** `components/views/table/table-view.tsx` (docs/11 section 4): TanStack Table plus Virtual, frozen title column, resize and reorder columns into `spec.columnWidths` and `spec.visibleFields`, spreadsheet keyboard editing, group roll-ups, footer aggregates, CSV export.
 3. **Timeline engine** `components/views/engine/` plus pure math in `lib/client/timeline/scale.ts` with tests (docs/05 decision 7, docs/11 section 5): date scale with Day, Week, Month, Quarter zoom, virtualized rows and columns, bar drag and resize, dependency connectors in SVG, `computeCriticalPath`, `shiftSuccessors` for auto-schedule.
 4. **Gantt view** `components/views/gantt/gantt-view.tsx` on the engine: left grid, summary bars, milestones, link by drag (`addDependencyAction`), critical path and baseline toggles in `spec.options`.
@@ -60,7 +61,9 @@ pnpm dev
 node scripts/screenshot.mjs "http://localhost:3000/dev/preview?view=board" /tmp/board.png 1440 900 light
 ```
 
-Open the PNG and compare with the List view. The preview mounts the real `ProjectWorkspace` with fixture data (`lib/dev/fixtures.ts`: 20 tasks, 4 sections, 5 statuses, 10 people, 10 dependencies, fixture today 2026-11-04). `?view=` accepts list, board, table, gantt, timeline, calendar. The route is excluded from Clerk middleware and returns 404 in production unless `TP_ENABLE_PREVIEW=1`.
+Open the PNG and compare with the List view. The preview mounts the real `ProjectWorkspace` with fixture data (`lib/dev/fixtures.ts`: 20 tasks, 4 sections, 5 statuses, 10 people, 10 dependencies, fixture today 2026-11-04). `?view=` accepts list, board, table, gantt, timeline, calendar. An optional `&spec=<url encoded ViewSpec JSON>` becomes the initial spec, so grouping, densities, and view options can be screenshotted without a backend. The route is excluded from Clerk middleware and returns 404 in production unless `TP_ENABLE_PREVIEW=1`.
+
+If Playwright cannot download its own browser, set `PW_CHROMIUM_PATH` to a Chromium binary (for example `/opt/pw-browsers/chromium`); `scripts/screenshot.mjs` and `playwright.config.ts` both honor it. The Board journeys run with `pnpm test:e2e tests/e2e/board.spec.ts` against `pnpm dev`.
 
 ## Running the real app locally
 

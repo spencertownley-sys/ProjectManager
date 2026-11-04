@@ -10,7 +10,7 @@ import {
   fixturePeople,
   fixtureToday,
 } from "@/lib/dev/fixtures";
-import { defaultViewSpec } from "@/lib/validation/view-spec";
+import { defaultViewSpec, decodeViewSpec } from "@/lib/validation/view-spec";
 import type { ViewType } from "@/lib/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -19,10 +19,10 @@ export const dynamic = "force-dynamic";
 export default async function PreviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; theme?: string }>;
+  searchParams: Promise<{ view?: string; theme?: string; spec?: string }>;
 }) {
   if (process.env.NODE_ENV === "production" && process.env.TP_ENABLE_PREVIEW !== "1") notFound();
-  const { view } = await searchParams;
+  const { view, spec } = await searchParams;
   const rows = fixtureRows();
   const project = fixtureProject();
   const viewType = (
@@ -83,7 +83,7 @@ export default async function PreviewPage({
             viewType={viewType}
             savedViewId={null}
             initialData={{ rows, total: rows.length, truncated: false, dependencies: fixtureDependencies() }}
-            initialSpec={defaultViewSpec()}
+            initialSpec={spec ? decodeViewSpec(spec) : defaultViewSpec()}
           />
         </AppShell>
       </AppProviders>

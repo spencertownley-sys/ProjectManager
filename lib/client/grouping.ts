@@ -82,7 +82,9 @@ export function groupRows(rows: TaskRow[], groupBy: FieldRef | undefined, ctx: G
           } else if (value === null || value === undefined || value === "" || (Array.isArray(value) && value.length === 0)) {
             ensure("none", `No ${def?.name ?? "value"}`).rows.push(row);
           } else {
-            ensure(String(value), String(value)).rows.push(row);
+            const opt = options.find((o) => o.id === value);
+            const person = ctx.members.find((m) => m.id === value);
+            ensure(String(value), opt?.name ?? person?.displayName ?? String(value), opt?.color).rows.push(row);
           }
         } else {
           ensure("all", "All tasks").rows.push(row);

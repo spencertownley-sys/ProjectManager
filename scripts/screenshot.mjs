@@ -1,6 +1,7 @@
 import { chromium } from "@playwright/test";
 const [,, url, out, w = "1440", h = "900", theme = "light"] = process.argv;
-const browser = await chromium.launch();
+// PW_CHROMIUM_PATH points at a preinstalled Chromium when Playwright's own download is unavailable.
+const browser = await chromium.launch(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH, args: ["--no-sandbox"] } : {});
 const ctx = await browser.newContext({ viewport: { width: Number(w), height: Number(h) }, colorScheme: theme });
 const page = await ctx.newPage();
 const errors = [];

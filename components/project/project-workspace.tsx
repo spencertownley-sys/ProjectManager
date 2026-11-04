@@ -19,6 +19,7 @@ import { ProjectOverviewPane } from "./project-overview-pane";
 import type { ProjectInfo, ViewProps } from "@/components/views/types";
 import { viewOrder, viewMeta } from "@/components/views/view-registry";
 import { ListView } from "@/components/views/list/list-view";
+import { BoardViewOptions } from "@/components/views/board/board-options";
 import { useProjectTasks, type ProjectTasksData } from "@/lib/client/queries";
 import { useProjectSpec } from "@/lib/client/spec-store";
 import { useProjectRealtime } from "@/lib/client/realtime";
@@ -189,7 +190,17 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
         </Tooltip>
       </nav>
 
-      <CommandBar project={project} spec={spec} setSpec={setSpec} onReset={reset} onQuickAdd={() => setQuickAddSignal((v) => v + 1)} onSaveView={() => setSaveOpen(true)} onShare={share} canEdit={canEdit} />
+      <CommandBar
+        project={project}
+        spec={spec}
+        setSpec={setSpec}
+        onReset={reset}
+        onQuickAdd={() => setQuickAddSignal((v) => v + 1)}
+        onSaveView={() => setSaveOpen(true)}
+        onShare={share}
+        canEdit={canEdit}
+        viewOptions={viewType === "board" ? <BoardViewOptions project={project} spec={spec} setSpec={setSpec} /> : undefined}
+      />
 
       <div className="relative min-h-0 flex-1 bg-canvas">
         {tasks.isError ? (

@@ -46,11 +46,17 @@ export function useProjectSpec(projectId: string, base: ViewSpec | null) {
         } catch {
           // ignore
         }
-        if (fromUrl) router.replace(pathname);
+        if (fromUrl) {
+          // Drop only the spec parameter so other parameters (for example the dev preview's view) survive.
+          const rest = new URLSearchParams(params.toString());
+          rest.delete("spec");
+          const query = rest.toString();
+          router.replace(query ? `${pathname}?${query}` : pathname);
+        }
         return next;
       });
     },
-    [storageKey, fromUrl, router, pathname],
+    [storageKey, fromUrl, router, pathname, params],
   );
 
   const reset = React.useCallback(() => setSpec(() => base ?? defaultViewSpec()), [setSpec, base]);
