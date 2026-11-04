@@ -60,6 +60,7 @@ const titles: Array<[string, string, number, number | null, number | null, strin
   ["Results report", "sec-wrap", 0, 30, 36, "u-mary", "medium", false],
   ["Retrospective", "sec-wrap", 0, 37, 37, "u-spencer", "none", true],
   ["Archive assets", "sec-wrap", 0, 38, 40, "u-amelia", "low", false],
+  ["Vendor contract renewal", "sec-wrap", 0, null, null, "u-pete", "low", false],
 ];
 
 export function fixtureRows(): TaskRow[] {

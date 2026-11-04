@@ -29,7 +29,7 @@ test.describe("Table view", () => {
   test("shows a frozen title column, headers, and footer aggregates", async ({ page }) => {
     await openTable(page);
     await expect(page.getByRole("columnheader")).toHaveText(["", "Title", "Assignee", "Due date", "Priority", "Status"]);
-    await expect(page.getByRole("button", { name: /Title aggregate/ })).toHaveText("23 tasks");
+    await expect(page.getByRole("button", { name: /Title aggregate/ })).toHaveText("24 tasks");
     await expect(page.getByRole("button", { name: /Status aggregate/ })).toHaveText(/% complete/);
     const title = cell(page, "t-4", "title");
     await expect(title).toHaveCSS("position", "sticky");

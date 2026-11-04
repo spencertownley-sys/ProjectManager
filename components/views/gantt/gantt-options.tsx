@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/toast";
 import type { ProjectInfo } from "@/components/views/types";
 import type { ViewSpec } from "@/lib/validation/view-spec";
 import { zoomOrder, zoomLabels, type Zoom } from "@/lib/client/timeline/scale";
-import { useGanttStore } from "@/lib/client/gantt-store";
+import { useTimelineCommands } from "@/lib/client/timeline-commands";
 import { useWorkspace } from "@/lib/client/workspace-context";
 import { saveBaselineAction } from "@/lib/actions/projects";
 import { formatDateShort } from "@/lib/client/dates";
@@ -36,7 +36,7 @@ export function readGanttOptions(spec: ViewSpec): GanttOptions {
 /** Gantt controls in the command bar: zoom and fit, critical path, baseline, scroll to today, export (docs/10 section 4). */
 export function GanttViewOptions({ project, spec, setSpec, canEdit }: { project: ProjectInfo; spec: ViewSpec; setSpec: (updater: (prev: ViewSpec) => ViewSpec) => void; canEdit: boolean }) {
   const { zoom, criticalPath, baselineId } = readGanttOptions(spec);
-  const send = useGanttStore((s) => s.send);
+  const send = useTimelineCommands((s) => s.send);
   const { slug } = useWorkspace();
   const { toast } = useToast();
   const router = useRouter();

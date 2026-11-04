@@ -21,6 +21,7 @@ import { viewOrder, viewMeta } from "@/components/views/view-registry";
 import { ListView } from "@/components/views/list/list-view";
 import { BoardViewOptions } from "@/components/views/board/board-options";
 import { GanttViewOptions } from "@/components/views/gantt/gantt-options";
+import { TimelineViewOptions } from "@/components/views/timeline/timeline-options";
 import { ArrowDownload16Regular } from "@fluentui/react-icons";
 import { tableColumns, visibleTableColumns, rowsToCsv } from "@/lib/client/table";
 import { useProjectTasks, type ProjectTasksData } from "@/lib/client/queries";
@@ -222,6 +223,8 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
             <BoardViewOptions project={project} spec={spec} setSpec={setSpec} />
           ) : viewType === "gantt" ? (
             <GanttViewOptions project={project} spec={spec} setSpec={setSpec} canEdit={canEdit} />
+          ) : viewType === "timeline" ? (
+            <TimelineViewOptions spec={spec} setSpec={setSpec} />
           ) : undefined
         }
         extraMenuItems={

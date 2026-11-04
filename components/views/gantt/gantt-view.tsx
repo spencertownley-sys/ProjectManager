@@ -19,7 +19,7 @@ import { buildTimelineSvg, svgToPngBlob, downloadBlob, printSvg, type ExportPale
 import { useTaskMutations, useBaseline } from "@/lib/client/queries";
 import { useViewState, useShellState } from "@/lib/client/view-state";
 import { useWorkspace } from "@/lib/client/workspace-context";
-import { useGanttStore, type GanttCommand } from "@/lib/client/gantt-store";
+import { useTimelineCommands, type TimelineCommand } from "@/lib/client/timeline-commands";
 import { addDependencyAction, removeDependencyAction } from "@/lib/actions/tasks";
 import { formatDateShort } from "@/lib/client/dates";
 import { readGanttOptions } from "./gantt-options";
@@ -166,8 +166,8 @@ export function GanttView(props: ViewProps & { quickAddSignal?: number }) {
   };
 
   // Commands from the command bar (fit, today, scroll to selected, export) run through the Gantt store.
-  const register = useGanttStore((s) => s.register);
-  const runCommand = (command: GanttCommand) => {
+  const register = useTimelineCommands((s) => s.register);
+  const runCommand = (command: TimelineCommand) => {
     const engine = engineRef.current;
     if (command === "today") engine?.scrollToToday();
     if (command === "scroll-selected") {

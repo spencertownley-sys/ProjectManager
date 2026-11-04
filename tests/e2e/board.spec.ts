@@ -30,7 +30,7 @@ test.describe("Board view", () => {
     const headings = page.getByRole("heading", { level: 2 });
     await expect(headings).toHaveText([/Proposed/, /Approved/, /In progress/, /In review/, /Complete/]);
     await expect(page.getByLabel("3 of 5 allowed")).toBeVisible();
-    await expect(page.getByRole("list", { name: "Proposed" }).getByRole("listitem")).toHaveCount(11);
+    await expect(page.getByRole("list", { name: "Proposed" }).getByRole("listitem")).toHaveCount(12);
   });
 
   test("drags a card to another column with the pointer", async ({ page }) => {
@@ -63,8 +63,12 @@ test.describe("Board view", () => {
 
   test("navigates cards with J, K, H, and L and opens the composer with N", async ({ page }) => {
     await openBoard(page);
-    await page.keyboard.press("j");
-    await expect(page.locator('[data-task-id="t-9"]')).toBeFocused();
+    // The window key handler attaches after hydration; retry the first press until a card takes focus.
+    await expect(async () => {
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("j");
+      await expect(page.locator('[data-task-id="t-9"]')).toBeFocused({ timeout: 500 });
+    }).toPass({ timeout: 10_000 });
     await page.keyboard.press("j");
     await expect(page.locator('[data-task-id="t-11"]')).toBeFocused();
     await page.keyboard.press("l");
