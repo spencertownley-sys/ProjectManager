@@ -1,6 +1,7 @@
 /* Deterministic fixture data for the /dev/preview route and visual tests. Not used in production. */
 import type { TaskRow, DependencyRow, PersonRef } from "@/lib/query-engine/types";
 import type { ProjectInfo } from "@/components/views/types";
+import type { NotificationItem } from "@/lib/services/notifications";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 
 const people: PersonRef[] = [
@@ -167,3 +168,23 @@ export function fixtureProject(): ProjectInfo {
 }
 
 export const fixturePeople = people;
+
+/** Notifications for the Inbox preview: a mix of unread and read items across types. */
+export function fixtureNotifications(): NotificationItem[] {
+  const project = { id: "p-1", key: "MKT", name: "Spring campaign", color: "berry" };
+  const person = (id: string) => {
+    const p = people.find((x) => x.id === id)!;
+    return { id: p.id, displayName: p.displayName, avatarUrl: p.avatarUrl };
+  };
+  const task = (i: number) => ({ id: `t-${i}`, title: titles[i - 1][0], number: i, key: `MKT-${i}` });
+  const at = (hoursAgo: number) => new Date(Date.parse(fixtureToday + "T16:00:00Z") - hoursAgo * 3_600_000).toISOString();
+  return [
+    { id: "n-1", type: "mention", payload: { excerpt: "Can you check the numbers in the second section before Friday?", taskTitle: "Budget approval" }, readAt: null, createdAt: at(0.3), actor: person("u-mary"), task: task(3), project },
+    { id: "n-2", type: "assigned", payload: { taskTitle: "Channel plan" }, readAt: null, createdAt: at(2), actor: person("u-jenny"), task: task(4), project },
+    { id: "n-3", type: "due_soon", payload: { dueDate: day(1), taskTitle: "Photography shoot" }, readAt: null, createdAt: at(5), actor: null, task: task(10), project },
+    { id: "n-4", type: "comment", payload: { excerpt: "Uploaded the revised deck, two slides changed." }, readAt: at(20), createdAt: at(22), actor: person("u-lisa"), task: task(7), project },
+    { id: "n-5", type: "update", payload: { field: "due_date", before: day(10), after: day(12), taskTitle: "Landing page build" }, readAt: at(30), createdAt: at(31), actor: person("u-logan"), task: task(8), project },
+    { id: "n-6", type: "dependency_unblocked", payload: { taskTitle: "Creative concepts" }, readAt: null, createdAt: at(50), actor: null, task: task(6), project },
+    { id: "n-7", type: "status_update", payload: { excerpt: "On track. Creative review moved to next week." }, readAt: at(70), createdAt: at(72), actor: person("u-spencer"), task: null, project },
+  ];
+}

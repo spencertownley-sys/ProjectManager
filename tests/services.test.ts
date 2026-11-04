@@ -7,6 +7,7 @@ import { upsertUser, upsertWorkspace, upsertMembership, resolveActor } from "@/l
 import { createProject, getProject, createSection, saveBaseline, getBaselineTasks, deleteBaseline } from "@/lib/services/projects";
 import { createTask, updateTask, moveTask, queryProjectTasks, addDependency, addComment, getTaskDetail, queryMyWork, deleteTask } from "@/lib/services/tasks";
 import { saveView } from "@/lib/services/views";
+import { createNotifications, listNotifications, markNotifications, unreadCount } from "@/lib/services/notifications";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 import { eq } from "drizzle-orm";
 
@@ -149,5 +150,33 @@ describe("services on PGlite", () => {
     await expect(saveBaseline(ctx, { projectId, name: "  " })).rejects.toThrow();
     await deleteBaseline(ctx, baseline.id);
     expect((await getProject(ctx, projectId)).baselines.find((b) => b.id === baseline.id)).toBeUndefined();
+  });
+
+  it("lists, reads, snoozes, and archives notifications for the inbox", async () => {
+    const ctx = { db, actor: member };
+    const task = await createTask({ db, actor: owner }, { projectId, title: "Notify me", sectionId: sections[0].id });
+    await createNotifications({ db }, [
+      { workspaceId: member.workspaceId, userId: member.userId, type: "assigned", taskId: task.id, projectId, actorId: owner.userId },
+      { workspaceId: member.workspaceId, userId: member.userId, type: "mention", taskId: task.id, projectId, actorId: owner.userId, payload: { excerpt: "Can you look?" } },
+      { workspaceId: member.workspaceId, userId: owner.userId, type: "comment", taskId: task.id, projectId, actorId: member.userId },
+    ]);
+    const all = await listNotifications(ctx);
+    expect(all.map((n) => n.type).sort()).toEqual(["assigned", "mention"]);
+    expect(all[0].task?.key).toBe(`LP-${task.number}`);
+    expect(all[0].actor?.displayName).toBe("Spencer Townley");
+    expect(await listNotifications(ctx, "mentions")).toHaveLength(1);
+    expect(await unreadCount(ctx)).toBe(2);
+    const mention = all.find((n) => n.type === "mention")!;
+    await markNotifications(ctx, { ids: [mention.id], action: "read" });
+    expect(await unreadCount(ctx)).toBe(1);
+    await markNotifications(ctx, { all: true, onlyRead: true, action: "archive" });
+    expect((await listNotifications(ctx)).map((n) => n.type)).toEqual(["assigned"]);
+    const assigned = (await listNotifications(ctx))[0];
+    await markNotifications(ctx, { ids: [assigned.id], action: "snooze", snoozeUntil: new Date(Date.now() + 3_600_000).toISOString() });
+    expect(await listNotifications(ctx)).toHaveLength(0);
+    await markNotifications(ctx, { ids: [assigned.id], action: "snooze" });
+    expect(await listNotifications(ctx)).toHaveLength(1);
+    // Another member's notification is untouched.
+    expect(await unreadCount({ db, actor: owner })).toBe(1);
   });
 });

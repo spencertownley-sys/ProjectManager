@@ -49,7 +49,7 @@ Each view must implement the `ViewProps` contract in `components/views/types.ts`
 4. **Gantt view**: done (see the table above). Dependency routing runs on the main thread; docs/11 section 5 notes the worker as a follow up once a project crosses 2,000 dependencies.
 5. **Timeline view**: done (see the table above).
 6. **Calendar view**: done (see the table above). Calendar sync to Google or Outlook stays a phase 3 item.
-7. **Inbox** `app/(app)/w/[slug]/inbox/page.tsx` (docs/10 section 5): `listNotificationsAction` and `markNotificationsAction` already exist.
+7. **Inbox**: done. `app/(app)/w/[slug]/inbox/page.tsx` renders `components/inbox/inbox-view.tsx`: a 400 px notification list (All, Mentions, Assigned, Due soon, Updates tabs; actor avatar, text, excerpt, project chip, time, unread dot; hover actions Archive, Snooze with 1 hour, Tomorrow 9 am, Next week, Mark read; Mark all read and Archive all read in the header menu; J and K, E, S, Enter) beside the referenced task pane. `listNotificationsAction` was added, `markNotifications` gained `onlyRead`, text phrasing lives in `lib/client/inbox.ts` with tests, and `?view=inbox` previews it with `fixtureNotifications()`. Journeys in `tests/e2e/inbox.spec.ts`.
 8. **Settings** (docs/10 section 13): members and roles (Clerk Backend API for invites), workflow editor (`updateWorkflowAction`), fields library, tags, Clerk `<UserProfile>`, notification matrix.
 9. **Cycles** page (docs/10 section 16): `createCycleAction`, `closeCycleAction` exist; burndown from `task_events`.
 10. **Search, templates gallery, help page** (docs/10 sections 11, 12; keyboard sheet from docs/11 section 1).

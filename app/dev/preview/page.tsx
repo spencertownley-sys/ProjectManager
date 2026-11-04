@@ -9,7 +9,9 @@ import {
   fixtureDependencies,
   fixturePeople,
   fixtureToday,
+  fixtureNotifications,
 } from "@/lib/dev/fixtures";
+import { InboxView } from "@/components/inbox/inbox-view";
 import { defaultViewSpec, decodeViewSpec } from "@/lib/validation/view-spec";
 import type { ViewType } from "@/lib/db/schema";
 
@@ -79,14 +81,18 @@ export default async function PreviewPage({
             unreadCount: 3,
           }}
         >
-          <ProjectWorkspace
-            project={project}
-            viewType={viewType}
-            savedViewId={null}
-            initialData={data}
-            staticData={data}
-            initialSpec={spec ? decodeViewSpec(spec) : defaultViewSpec()}
-          />
+          {view === "inbox" ? (
+            <InboxView initialItems={fixtureNotifications()} staticItems={fixtureNotifications()} />
+          ) : (
+            <ProjectWorkspace
+              project={project}
+              viewType={viewType}
+              savedViewId={null}
+              initialData={data}
+              staticData={data}
+              initialSpec={spec ? decodeViewSpec(spec) : defaultViewSpec()}
+            />
+          )}
         </AppShell>
       </AppProviders>
     </StaticAuthBridge>

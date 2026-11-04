@@ -2,7 +2,20 @@ import { and, desc, eq, isNull, sql, inArray } from "drizzle-orm";
 import { schema } from "@/lib/db/client";
 import type { ServiceContext } from "./context";
 
-export async function listNotifications(ctx: ServiceContext, filter: "all" | "unread" | "mentions" | "assigned" | "due" | "updates" = "all") {
+export type NotificationFilter = "all" | "unread" | "mentions" | "assigned" | "due" | "updates";
+
+export type NotificationItem = {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  readAt: string | null;
+  createdAt: string;
+  actor: { id: string; displayName: string; avatarUrl: string | null } | null;
+  task: { id: string; title: string; number: number; key: string } | null;
+  project: { id: string; key: string; name: string; color: string } | null;
+};
+
+export async function listNotifications(ctx: ServiceContext, filter: NotificationFilter = "all"): Promise<NotificationItem[]> {
   const { db, actor } = ctx;
   const conditions = [eq(schema.notifications.userId, actor.userId), eq(schema.notifications.workspaceId, actor.workspaceId), isNull(schema.notifications.archivedAt), sql`(${schema.notifications.snoozedUntil} is null or ${schema.notifications.snoozedUntil} <= now())`];
   if (filter === "unread") conditions.push(isNull(schema.notifications.readAt));
@@ -45,10 +58,12 @@ export async function unreadCount(ctx: ServiceContext): Promise<number> {
   return Number(row?.count ?? 0);
 }
 
-export async function markNotifications(ctx: ServiceContext, input: { ids?: string[]; all?: boolean; action: "read" | "unread" | "archive" | "snooze"; snoozeUntil?: string }) {
+/** Marks notifications read, unread, archived, or snoozed. `all` applies to the inbox; `onlyRead` narrows that to read rows (archive all read). */
+export async function markNotifications(ctx: ServiceContext, input: { ids?: string[]; all?: boolean; onlyRead?: boolean; action: "read" | "unread" | "archive" | "snooze"; snoozeUntil?: string }) {
   const { db, actor } = ctx;
+  if (!input.all && (input.ids?.length ?? 0) === 0) return;
   const where = input.all
-    ? and(eq(schema.notifications.userId, actor.userId), eq(schema.notifications.workspaceId, actor.workspaceId), isNull(schema.notifications.archivedAt))
+    ? and(eq(schema.notifications.userId, actor.userId), eq(schema.notifications.workspaceId, actor.workspaceId), isNull(schema.notifications.archivedAt), ...(input.onlyRead ? [sql`${schema.notifications.readAt} is not null`] : []))
     : and(eq(schema.notifications.userId, actor.userId), inArray(schema.notifications.id, input.ids ?? []));
   const patch =
     input.action === "read"
