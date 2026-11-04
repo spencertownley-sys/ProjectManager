@@ -4,7 +4,6 @@
 -- Conventions: snake_case, uuid primary keys (uuidv7 where available), timestamptz,
 -- soft delete via deleted_at on user-facing entities, version counter on tasks.
 
-create extension if not exists "pgcrypto";
 create extension if not exists "pg_trgm";
 
 -- ---------------------------------------------------------------------------

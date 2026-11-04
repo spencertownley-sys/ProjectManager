@@ -1,0 +1,3 @@
+Cascadia Code is Copyright (c) 2019 Microsoft Corporation and licensed under the SIL Open Font License, Version 1.1.
+Source and full license text: https://github.com/microsoft/cascadia-code
+The file CascadiaCode.woff2 in this folder is taken unchanged from the v2407.24 release.
