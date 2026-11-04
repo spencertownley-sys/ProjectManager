@@ -1,0 +1,31 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Next.js
+.next
+out
+next-env.d.ts
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Testing
+coverage
+playwright-report
+test-results
+
+# Tooling
+.vercel
+.inngest
+*.log
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
