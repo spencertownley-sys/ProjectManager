@@ -268,8 +268,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-* {
-  border-color: var(--color-border);
+/* Layered so utilities such as border-brand and border-transparent can override the default. */
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
 }
 
 h1,

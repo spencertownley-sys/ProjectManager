@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MoreHorizontal20Regular, Info20Regular, Add20Regular, LockClosed16Regular } from "@fluentui/react-icons";
+import { MoreHorizontal20Regular, Info20Regular, Add20Regular, LockClosed16Regular, ArrowSync20Regular } from "@fluentui/react-icons";
 import { AvatarGroup } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -148,6 +148,13 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
             <Info20Regular />
           </Button>
         </Tooltip>
+        <Tooltip content={`${workspace.cycleLabel}s`}>
+          <Button asChild variant="subtle" size="icon">
+            <Link href={`${base}/cycles`} aria-label={`${workspace.cycleLabel}s`}>
+              <ArrowSync20Regular />
+            </Link>
+          </Button>
+        </Tooltip>
         <div className="flex-1" />
         <AvatarGroup people={projectMembers.length ? projectMembers : members} max={5} size="sm" />
         <Button variant="secondary" size="sm" onClick={share}>
@@ -164,6 +171,9 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
               <MenuItem onSelect={() => setOverviewOpen(true)}>Edit details</MenuItem>
               <MenuItem asChild>
                 <Link href={`${base}/settings`}>Workflow and fields</Link>
+              </MenuItem>
+              <MenuItem asChild>
+                <Link href={`${base}/cycles`}>{workspace.cycleLabel}s</Link>
               </MenuItem>
               <MenuItem onSelect={async () => { const res = await setDefaultViewAction(slug, project.id, savedViewId); if (res.ok) toast({ title: "Default view updated", kind: "success" }); router.refresh(); }}>Set current view as default</MenuItem>
               <MenuSeparator />

@@ -10,6 +10,8 @@ import { saveView } from "@/lib/services/views";
 import { createNotifications, listNotifications, markNotifications, unreadCount } from "@/lib/services/notifications";
 import { inviteMember, changeMemberRole, removeMember, listPendingInvitations, updateTag, deleteTag, listTagsWithCounts, createTag, listNotificationPreferences, setNotificationPreference, type MembershipDirectory } from "@/lib/services/workspaces";
 import { createField, updateField, deleteField, listLibraryFields, listProjectFields, attachField, detachField, reorderProjectFields } from "@/lib/services/fields";
+import { listCycles, cycleBurndown, projectVelocity, planTasks, updateCycle } from "@/lib/services/cycles";
+import { createCycle, closeCycle } from "@/lib/services/projects";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 import { eq } from "drizzle-orm";
 
@@ -245,5 +247,32 @@ describe("services on PGlite", () => {
     const after = await listNotificationPreferences({ db, actor: member });
     expect(after.find((p) => p.type === "comment" && p.channel === "email")?.enabled).toBe(true);
     expect(after.find((p) => p.type === "assigned" && p.channel === "in_app")?.enabled).toBe(false);
+  });
+
+  it("plans cycles, reconstructs a burndown from events, and reports velocity", async () => {
+    const ctx = { db, actor: member };
+    const c1 = await createCycle(ctx, { projectId, name: "Cycle A", startDate: "2026-11-02", endDate: "2026-11-06", capacity: 20 });
+    const c2 = await createCycle(ctx, { projectId, name: "Cycle B", startDate: "2026-11-09", endDate: "2026-11-13" });
+    const t1 = await createTask(ctx, { projectId, title: "Plan me", sectionId: sections[0].id, estimate: 5 });
+    const t2 = await createTask(ctx, { projectId, title: "Plan me too", sectionId: sections[0].id, estimate: 3 });
+    expect(await planTasks(ctx, { projectId, taskIds: [t1.id, t2.id], cycleId: c1.id })).toBe(2);
+    expect(await planTasks(ctx, { projectId, taskIds: [t1.id], cycleId: c1.id })).toBe(0);
+    const done = statuses.find((s) => s.category === "done")!;
+    await updateTask(ctx, { id: t2.id, statusId: done.id });
+    const list = await listCycles(ctx, projectId);
+    const a = list.find((c) => c.id === c1.id)!;
+    expect(a).toMatchObject({ committed: 8, completed: 3, count: 2, doneCount: 1, capacity: 20 });
+    const burn = await cycleBurndown(ctx, c1.id, "2026-11-06");
+    expect(burn.unit).toBe("estimate");
+    expect(burn.points).toHaveLength(5);
+    expect(burn.points[4]).toMatchObject({ scope: 8, remaining: 5 });
+    await updateCycle(ctx, { id: c1.id, goal: "Ship the brief", capacity: 25 });
+    expect((await listCycles(ctx, projectId)).find((c) => c.id === c1.id)).toMatchObject({ goal: "Ship the brief", capacity: 25 });
+    await closeCycle(ctx, c1.id, "next");
+    const velocity = await projectVelocity(ctx, projectId);
+    expect(velocity.points.map((p) => [p.name, p.completed])).toEqual([["Cycle A", 3]]);
+    const after = await listCycles(ctx, projectId);
+    expect(after.find((c) => c.id === c2.id)?.count).toBe(1);
+    await expect(planTasks({ db, actor: { ...member, workspaceRole: "guest" } }, { projectId, taskIds: [t1.id], cycleId: null })).rejects.toThrow();
   });
 });

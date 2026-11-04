@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getCurrentSession } from "@/lib/auth/current";
-import { getProjectByKey } from "@/lib/services/projects";
+import { getProjectByKey, type ProjectDetail } from "@/lib/services/projects";
 import { queryProjectTasks } from "@/lib/services/tasks";
 import { NotFoundError } from "@/lib/services/context";
 import { ForbiddenError } from "@/lib/auth/permissions";
@@ -45,7 +45,14 @@ export async function ProjectPage({ workspaceSlug, projectKey, view, savedViewId
 
   const data = await queryProjectTasks(session, detail.project.id, spec, today);
 
-  const info: ProjectInfo = {
+  const info = toProjectInfo(detail);
+
+  return <ProjectWorkspace project={info} viewType={viewType} savedViewId={savedViewId ?? null} initialData={data} initialSpec={spec} />;
+}
+
+/** Maps a ProjectDetail from the service into the client ProjectInfo contract. */
+export function toProjectInfo(detail: ProjectDetail): ProjectInfo {
+  return {
     id: detail.project.id,
     key: detail.project.key,
     name: detail.project.name,
@@ -67,6 +74,4 @@ export async function ProjectPage({ workspaceSlug, projectKey, view, savedViewId
     baselines: detail.baselines,
     role: detail.role,
   };
-
-  return <ProjectWorkspace project={info} viewType={viewType} savedViewId={savedViewId ?? null} initialData={data} initialSpec={spec} />;
 }

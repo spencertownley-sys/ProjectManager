@@ -34,6 +34,14 @@ const sections = [
 
 export const fixtureToday = "2026-11-04";
 
+/** Three cycles: one closed, the active one, and the next. Tasks 1 to 5 ran in the first, 6 to 12 are in the active one. */
+export const fixtureCycles = [
+  { id: "cyc-1", name: "Cycle 1", goal: "Agree the brief and budget", startDate: "2026-10-19", endDate: "2026-10-30", capacity: 24, closedAt: "2026-10-31T09:00:00Z" },
+  { id: "cyc-2", name: "Cycle 2", goal: "Creative and landing page in review", startDate: "2026-11-02", endDate: "2026-11-13", capacity: 40, closedAt: null },
+  { id: "cyc-3", name: "Cycle 3", goal: null, startDate: "2026-11-16", endDate: "2026-11-27", capacity: 40, closedAt: null },
+];
+const cycleOfTask = (i: number): string | null => (i <= 5 ? "cyc-1" : i <= 12 ? "cyc-2" : null);
+
 function day(offset: number): string {
   const d = new Date(fixtureToday + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + offset);
@@ -77,7 +85,7 @@ export function fixtureRows(): TaskRow[] {
       projectColor: "berry",
       sectionId,
       parentId: null,
-      cycleId: null,
+      cycleId: cycleOfTask(i + 1),
       title,
       status,
       priority,
@@ -143,7 +151,7 @@ export function fixtureProject(): ProjectInfo {
     statuses,
     sections,
     fields: [],
-    cycles: [],
+    cycles: fixtureCycles,
     views: [
       { id: "v-default", name: "Default", type: "list", spec: defaultViewSpec(), isShared: true, ownerId: "u-spencer", position: 0 },
       { id: "v-mine", name: "My open tasks", type: "list", spec: { ...defaultViewSpec(), filters: { kind: "group", op: "and", items: [{ kind: "filter", field: "assignee", op: "is_me" }] } }, isShared: false, ownerId: "u-spencer", position: 1 },
@@ -187,4 +195,26 @@ export function fixtureNotifications(): NotificationItem[] {
     { id: "n-6", type: "dependency_unblocked", payload: { taskTitle: "Creative concepts" }, readAt: null, createdAt: at(50), actor: null, task: task(6), project },
     { id: "n-7", type: "status_update", payload: { excerpt: "On track. Creative review moved to next week." }, readAt: at(70), createdAt: at(72), actor: person("u-spencer"), task: null, project },
   ];
+}
+
+/** Task events that reproduce the fixture plan: creation, planning into cycles, and completions, for the burndown. */
+export function fixtureEvents(): Array<{ taskId: string; type: string; field: string | null; before: unknown; after: unknown; createdAt: string }> {
+  const out: Array<{ taskId: string; type: string; field: string | null; before: unknown; after: unknown; createdAt: string }> = [];
+  const rows = fixtureRows();
+  for (const r of rows) {
+    out.push({ taskId: r.id, type: "task.created", field: null, before: null, after: null, createdAt: r.createdAt });
+    if (r.cycleId) {
+      const planned = r.cycleId === "cyc-1" ? day(-18) : day(-4);
+      out.push({ taskId: r.id, type: "task.updated", field: "cycle", before: null, after: r.cycleId, createdAt: planned + "T09:30:00Z" });
+    }
+    if (r.completedAt) {
+      // Spread completions across the cycle so the burndown has a shape.
+      const n = Number(r.id.replace(/\D/g, "")) || 0;
+      const when = r.cycleId === "cyc-1" ? day(-14 + (n % 5) * 2) : day(-2 + (n % 3));
+      out.push({ taskId: r.id, type: "task.completed", field: null, before: null, after: null, createdAt: when + "T15:00:00Z" });
+    }
+  }
+  // The active cycle also completed two tasks mid cycle and re-estimated one.
+  out.push({ taskId: "t-7", type: "task.updated", field: "estimate", before: 9, after: 4, createdAt: day(-1) + "T11:00:00Z" });
+  return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }

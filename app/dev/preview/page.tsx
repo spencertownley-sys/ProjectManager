@@ -10,7 +10,11 @@ import {
   fixturePeople,
   fixtureToday,
   fixtureNotifications,
+  fixtureCycles,
+  fixtureEvents,
 } from "@/lib/dev/fixtures";
+import { CyclesPage } from "@/components/cycles/cycles-page";
+import { cycleProgress } from "@/lib/client/cycles";
 import { InboxView } from "@/components/inbox/inbox-view";
 import { SettingsPreview, type SettingsPreviewPanel } from "@/components/settings/settings-preview";
 import { defaultViewSpec, decodeViewSpec } from "@/lib/validation/view-spec";
@@ -82,7 +86,18 @@ export default async function PreviewPage({
             unreadCount: 3,
           }}
         >
-          {view === "settings" ? (
+          {view === "cycles" ? (
+            <CyclesPage
+              project={project}
+              cycles={fixtureCycles.map((c) => {
+                const p = cycleProgress(rows.map((r) => ({ id: r.id, estimate: r.estimate, cycleId: r.cycleId, completedAt: r.completedAt, createdAt: r.createdAt })), c.id);
+                return { ...c, committed: p.committed, completed: p.completed, count: p.count, doneCount: p.doneCount };
+              })}
+              initialData={data}
+              staticData={data}
+              staticEvents={fixtureEvents()}
+            />
+          ) : view === "settings" ? (
             <SettingsPreview
               panel={(panel ?? "members") as SettingsPreviewPanel}
               members={fixturePeople.map((p, i) => ({ id: p.id, displayName: p.displayName, email: p.email ?? "", avatarUrl: p.avatarUrl, role: i === 0 ? "owner" : i === 1 ? "admin" : i === 9 ? "guest" : "member", weeklyCapacityHours: 40, joinedAt: "2026-09-15T09:00:00Z" }))}
