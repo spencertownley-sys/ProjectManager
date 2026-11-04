@@ -49,7 +49,7 @@ Scope: stories marked S.
 - Portfolios and Goals.
 - Baselines in Gantt, auto-scheduling.
 - Burndown and velocity.
-- Slack and Microsoft Teams connectors, GitHub integration, inbound webhooks.
+- Connectors in this order (decided 03 Nov 2026): Microsoft Teams, GitHub, Planner and Project import, Excel and Power BI export, MCP server for agent access, Slack, Zapier and Make, calendar ICS feeds. Inbound webhooks.
 - Asana, Trello, Jira importers; exports.
 - Guests, workspace-level field library, billing (Stripe).
 - Reply-by-email.
@@ -63,7 +63,7 @@ Scope: stories marked C plus platform maturity.
 - Calendar sync (Google, Outlook).
 - Time tracking (basic timers and reports).
 - Approvals and proofing on attachments.
-- AI assistant: draft task descriptions, summarize threads, suggest due dates and assignees, natural-language filter.
+- AI assistant (confirmed): draft task descriptions, summarize threads, suggest due dates and assignees, natural-language filter; per-workspace off switch; builds on the MCP server shipped in phase 2.
 - Public API v1 freeze with OpenAPI document and SDKs (TypeScript, Python).
 - App marketplace framework (document 12, section 7).
 

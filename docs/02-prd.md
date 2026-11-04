@@ -227,12 +227,21 @@ North star metric: weekly active workspaces where at least three members each co
 | Segoe UI is not licensed for web embedding | Visual fidelity | System font stack on Windows, Selawik (MIT, metric-compatible) self-hosted elsewhere (document 09) |
 | Realtime at scale | Cost | Supabase Realtime per project channel; fall back to polling for inactive tabs |
 
-## 9. Open questions
+## 9. Decisions and open questions
+
+### 9.1 Decided (03 Nov 2026)
+
+1. Chat connector: Microsoft Teams ships first with the deep feature set (bot, message extension, adaptive cards, project tab). Slack follows in the same phase with notifications and task creation, deeper features later.
+2. Microsoft 365 depth in phase 2: Planner and Project import (plus .mpp export), Excel and Power BI live export, and agent access through an MCP server so Copilot, Claude, and other agents can read and write work.
+3. Engineering connectors: GitHub only for v1. GitLab, Bitbucket, Azure DevOps, and two-way Jira or Linear sync stay in the later-phase candidate list.
+4. AI assistant confirmed for the roadmap (summaries, drafting, natural-language filters) with a per-workspace off switch. Calendar two-way sync, email capture, cloud drives, and CRM or support connectors stay as candidates, not commitments.
+
+### 9.2 Open
 
 1. Final product name and domain.
-2. Which additional connectors, webhooks, and apps to include in v1 beyond the baseline in section 4.10 (see the question list at the end of document 12).
-3. Pricing tiers and whether a free tier exists at launch.
-4. Whether to offer single assignee only in v1 (simpler Workload math) or multi-assignee from the start.
+2. Pricing tiers and whether a free tier exists at launch.
+3. Whether to offer single assignee only in v1 (simpler Workload math) or multi-assignee from the start.
+4. Remaining connector candidates in document 12, section 9: design tools, time tracking, incident tools, automation platforms beyond Zapier and Make, and any day-one webhook targets.
 
 ## 10. Approval
 

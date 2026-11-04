@@ -78,17 +78,20 @@ Automations run on Inngest from the event stream:
 
 ## 6. Connectors
 
-### 6.1 v1 connectors (phase 2)
+### 6.1 Phase 2 connectors (decided 03 Nov 2026)
 
-| Connector | Direction | Capabilities |
-|---|---|---|
-| Slack | Both | Notifications to DM or channel per project; link unfurls for task URLs; `/meridian` slash command to create a task; "Create task from message" message action; comment replies from Slack threads |
-| Microsoft Teams | Both | Same as Slack through a Teams app with a bot and message extension; adaptive cards for status updates; tab app that embeds a project view |
-| GitHub | Both | Link PRs and issues by key in branch name, PR title, or body (`MKT-142`); PR status chip on the task; automation action "when PR merged, set status"; create a branch name from a task |
-| Google Calendar | Outbound, then both | ICS feed per user; two-way sync of due dates to a dedicated calendar (phase 3) |
-| Outlook Calendar | Outbound, then both | Same via Microsoft Graph |
-| Zapier | Both | Official Zapier app using webhooks for triggers and the REST API for actions |
-| Make | Both | Same pattern |
+Order of build inside phase 2 follows this table. Microsoft Teams leads because the product positioning is inside the Microsoft 365 ecosystem.
+
+| Order | Connector | Direction | Capabilities |
+|---|---|---|---|
+| 1 | Microsoft Teams | Both | Teams app with a bot and message extension; notifications to chats and channels per project; adaptive cards for status updates and assignments; "Create task from message"; comment replies from Teams threads; tab app that embeds a project view inside a channel |
+| 2 | GitHub | Both | Link PRs and issues by key in branch name, PR title, or body (`MKT-142`); PR status chip on the task; automation action "when PR merged, set status"; create a branch name from a task |
+| 3 | Planner and Project import | Inbound | Import Planner plans (buckets to sections, labels to tags, checklist to subtasks) through Microsoft Graph; import Project .mpp and .xml with tasks, dependencies, and baselines; export a Gantt project to .mpp and .xml |
+| 4 | Excel and Power BI export | Outbound | Live OData feed per workspace and per saved view for Excel "Get Data" and Power BI; scheduled .xlsx export to OneDrive or SharePoint |
+| 5 | MCP server (agent access) | Both | Hosted MCP server exposing tools to list and search tasks, create and update tasks, post comments, read project status, and run saved views, with OAuth scopes and per-workspace enablement; works with Microsoft Copilot, Claude, and other MCP clients |
+| 6 | Slack | Both | Notifications to DM or channel per project; link unfurls; `/meridian` slash command; "Create task from message"; deeper features (threads, home tab) after Teams reaches parity |
+| 7 | Zapier and Make | Both | Official apps using webhooks for triggers and the REST API for actions |
+| 8 | Google Calendar and Outlook Calendar | Outbound | ICS feed per user; two-way sync remains a phase 3 candidate |
 
 ### 6.2 Candidate connectors for later phases
 
@@ -114,20 +117,25 @@ Third parties register an app with OAuth client credentials, scopes, a webhook e
 
 ## 9. Questions for the product owner
 
-These are the decisions that shape the integration roadmap. Answers are recorded in document 02, section 9 when made.
+Answers are recorded in document 02, section 9.
 
-1. **Chat first:** Is the primary audience on Microsoft Teams, Slack, or both equally? This decides which connector ships first and gets the deeper feature set (tab app, message extension).
-2. **Microsoft 365 depth:** Should Meridian import from Planner and Project and export to Excel and Power BI in phase 2 rather than phase 3? That would strengthen the "belongs in the Microsoft ecosystem" positioning.
-3. **Engineering source control:** GitHub only in v1, or GitHub plus GitLab, Bitbucket, and Azure DevOps?
-4. **Two-way sync with incumbents:** Should Meridian sync with Jira or Linear so engineering can stay put while everyone else adopts Meridian? This is expensive but is the strongest consolidation story.
+### 9.1 Answered (03 Nov 2026)
+
+1. **Chat first:** Microsoft Teams first with the deep feature set; Slack follows.
+2. **Microsoft 365 depth:** Planner and Project import, Excel and Power BI export, and an MCP server for Copilot and other agents all move into phase 2.
+3. **Engineering source control:** GitHub only in v1.
+4. **Two-way sync with incumbents:** Not in v1; Jira and Linear sync stay as later candidates.
+11. **AI:** Confirmed. A Claude-powered assistant (summaries, drafting, natural-language filters) with a per-workspace off switch, plus the MCP server above.
+
+### 9.2 Still open
+
 5. **Calendar:** One-way ICS feed first (cheap), or two-way Google and Outlook sync in phase 2?
 6. **Email capture:** Create tasks from forwarded Gmail or Outlook mail in v1?
-7. **File storage:** Which drives should attachments link to natively: Google Drive, OneDrive, SharePoint, Dropbox, Box?
+7. **File storage:** Which drives should attachments link to natively: OneDrive and SharePoint (fits the Microsoft positioning), Google Drive, Dropbox, Box?
 8. **Design tools:** Figma and Canva previews on tasks for the creative and marketing personas?
 9. **Support and CRM:** Zendesk, Intercom, HubSpot, Salesforce task creation for request intake?
 10. **Time tracking:** Build native timers in phase 3, or integrate Harvest, Toggl, or Clockify instead?
-11. **AI:** Ship a Claude-powered assistant (summaries, drafting, natural language filters) and an MCP server so agents can operate Meridian? Which model provider, and should workspaces be able to turn it off?
-12. **Automation platforms:** Zapier and Make in v1, plus n8n and Power Automate?
+12. **Automation platforms:** Zapier and Make are planned; add n8n and Power Automate?
 13. **Monitoring and incidents:** Sentry and PagerDuty task creation for engineering teams?
 14. **Webhooks:** Any specific systems that must receive webhooks on day one (an internal data warehouse, a BI tool)?
 15. **Marketplace:** Is a third-party app marketplace a phase 3 goal or later?
