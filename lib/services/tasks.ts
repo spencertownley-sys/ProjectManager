@@ -432,6 +432,7 @@ export async function queryMyWork(ctx: ServiceContext, spec: ViewSpec, today: st
 
 export type TaskDetail = {
   task: TaskRow;
+  description: unknown;
   subtasks: TaskRow[];
   predecessors: Array<DependencyRow & { task: TaskRow }>;
   successors: Array<DependencyRow & { task: TaskRow }>;
@@ -440,6 +441,16 @@ export type TaskDetail = {
   events: Array<{ id: number; type: string; field: string | null; before: unknown; after: unknown; actor: { id: string; displayName: string; avatarUrl: string | null } | null; createdAt: string }>;
   followers: string[];
   isFollowing: boolean;
+  project: {
+    id: string;
+    key: string;
+    name: string;
+    color: string;
+    statuses: Array<{ id: string; name: string; category: "backlog" | "not_started" | "in_progress" | "done"; color: string; position: number; wipLimit: number | null }>;
+    sections: Array<{ id: string; name: string; position: number }>;
+    fields: Array<{ id: string; name: string; type: string; config: unknown; position: number }>;
+    cycles: Array<{ id: string; name: string; startDate: string; endDate: string; closedAt: string | null }>;
+  };
 };
 
 export async function getTaskDetail(ctx: ServiceContext, idOrKey: string, today: string): Promise<TaskDetail> {
@@ -527,7 +538,30 @@ export async function getTaskDetail(ctx: ServiceContext, idOrKey: string, today:
   const followerRows = await db.select({ userId: schema.taskFollowers.userId }).from(schema.taskFollowers).where(eq(schema.taskFollowers.taskId, id));
   const followers = followerRows.map((f) => f.userId);
 
-  return { task, subtasks: subtasksRes.rows, predecessors, successors, comments, attachments, events, followers, isFollowing: followers.includes(actor.userId) };
+  const [projectRow] = await db.select().from(schema.projects).where(eq(schema.projects.id, record.projectId));
+  const [statusRows, sectionRows, fieldRows, cycleRows] = await Promise.all([
+    db.select().from(schema.statuses).where(eq(schema.statuses.workflowId, projectRow.workflowId)).orderBy(asc(schema.statuses.position)),
+    db.select().from(schema.sections).where(and(eq(schema.sections.projectId, record.projectId), isNull(schema.sections.deletedAt))).orderBy(asc(schema.sections.position)),
+    db
+      .select({ field: schema.fieldDefinitions, position: schema.projectFields.position })
+      .from(schema.projectFields)
+      .innerJoin(schema.fieldDefinitions, eq(schema.fieldDefinitions.id, schema.projectFields.fieldId))
+      .where(and(eq(schema.projectFields.projectId, record.projectId), isNull(schema.fieldDefinitions.deletedAt)))
+      .orderBy(asc(schema.projectFields.position)),
+    db.select().from(schema.cycles).where(eq(schema.cycles.projectId, record.projectId)).orderBy(desc(schema.cycles.startDate)),
+  ]);
+  const project = {
+    id: projectRow.id,
+    key: projectRow.key,
+    name: projectRow.name,
+    color: projectRow.color,
+    statuses: statusRows.map((s) => ({ id: s.id, name: s.name, category: s.category, color: s.color, position: s.position, wipLimit: s.wipLimit })),
+    sections: sectionRows.map((s) => ({ id: s.id, name: s.name, position: s.position })),
+    fields: fieldRows.map((r) => ({ id: r.field.id, name: r.field.name, type: r.field.type, config: r.field.config, position: r.position })),
+    cycles: cycleRows.map((c) => ({ id: c.id, name: c.name, startDate: c.startDate, endDate: c.endDate, closedAt: c.closedAt?.toISOString() ?? null })),
+  };
+
+  return { task, description: record.description, subtasks: subtasksRes.rows, predecessors, successors, comments, attachments, events, followers, isFollowing: followers.includes(actor.userId), project };
 }
 
 export async function addDependency(ctx: ServiceContext, input: AddDependencyInput): Promise<DependencyRow> {

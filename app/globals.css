@@ -392,3 +392,19 @@ h4 {
 @utility drop-indicator {
   box-shadow: inset 0 2px 0 0 var(--color-brand);
 }
+
+/* Rich text (Tiptap) inside descriptions and comments */
+.prose-tp p { margin: 0 0 4px; }
+.prose-tp p:last-child { margin-bottom: 0; }
+.prose-tp h2 { font-size: 16px; line-height: 22px; font-weight: 600; margin: 8px 0 4px; }
+.prose-tp h3 { font-size: 14px; line-height: 20px; font-weight: 600; margin: 8px 0 4px; }
+.prose-tp ul, .prose-tp ol { padding-left: 20px; margin: 4px 0; }
+.prose-tp ul { list-style: disc; }
+.prose-tp ol { list-style: decimal; }
+.prose-tp li { margin: 2px 0; }
+.prose-tp code { font-family: var(--font-mono); font-size: 12px; background: var(--color-subtle); padding: 1px 4px; border-radius: 2px; }
+.prose-tp pre { font-family: var(--font-mono); font-size: 12px; background: var(--color-subtle); padding: 8px; border-radius: 4px; overflow-x: auto; }
+.prose-tp blockquote { border-left: 2px solid var(--color-border-strong); padding-left: 8px; color: var(--color-fg-secondary); margin: 4px 0; }
+.prose-tp a { color: var(--color-brand); text-decoration: underline; }
+.prose-tp strong { font-weight: 600; }
+.prose-tp .is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--color-fg-tertiary); float: left; height: 0; pointer-events: none; }

@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { clerkAppearance } from "@/lib/auth/clerk-appearance";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,13 +10,11 @@ const themeScript = `(function(){try{var t=localStorage.getItem("tp-theme");if(t
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider appearance={clerkAppearance}>
-      <html lang="en" suppressHydrationWarning>
-        <head>
-          <script dangerouslySetInnerHTML={{ __html: themeScript }} />
-        </head>
-        <body className="min-h-full">{children}</body>
-      </html>
-    </ClerkProvider>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-full">{children}</body>
+    </html>
   );
 }
