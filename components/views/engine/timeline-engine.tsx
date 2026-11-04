@@ -24,7 +24,7 @@ type Geometry = { row: EngineRow; task: TaskRow; index: number; span: DateRange;
  * operation, a today line, and non working day shading. Gantt, Timeline, and Calendar week build on it.
  */
 export const TimelineEngine = React.forwardRef<EngineHandle, EngineProps>(function TimelineEngine(props, ref) {
-  const { rows, range, zoom, today, weekStartsOn, rowHeight, barHeight, dependencies, showDependencies, canEdit, leftPane, criticalIds, baseline, barLabels, selectedTaskIds, openTaskId, selectedDependencyId, onMoveTask, onResizeTask, onLink, onSelectDependency, onDeleteDependency, onOpenTask, onSelectTask, onToggleGroup, onZoomChange, onCreateAt, onDropExternal, className } = props;
+  const { rows, range, zoom, pxPerDay, today, weekStartsOn, rowHeight, barHeight, dependencies, showDependencies, canEdit, leftPane, criticalIds, baseline, barLabels, selectedTaskIds, openTaskId, selectedDependencyId, onMoveTask, onResizeTask, onLink, onSelectDependency, onDeleteDependency, onOpenTask, onSelectTask, onToggleGroup, onZoomChange, onCreateAt, onDropExternal, className } = props;
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [viewport, setViewport] = React.useState({ left: 0, width: 1200 });
   const [drag, setDrag] = React.useState<Drag>(null);
@@ -34,7 +34,7 @@ export const TimelineEngine = React.forwardRef<EngineHandle, EngineProps>(functi
   const [linkMode, setLinkMode] = React.useState<{ sourceId: string; targetId: string | null } | null>(null);
   const leftWidth = leftPane?.width ?? 0;
 
-  const scale = React.useMemo<Scale>(() => createScale(range.start, range.end, zoom), [range.start, range.end, zoom]);
+  const scale = React.useMemo<Scale>(() => createScale(range.start, range.end, zoom, pxPerDay), [range.start, range.end, zoom, pxPerDay]);
   const ticks = React.useMemo(() => headerTicks(scale, today, weekStartsOn), [scale, today, weekStartsOn]);
   const shading = React.useMemo(() => nonWorkingRanges(scale), [scale]);
   const virtualizer = useVirtualizer({ count: rows.length, getScrollElement: () => scrollRef.current, estimateSize: () => rowHeight, overscan: 8, getItemKey: (i) => rows[i].key });
@@ -493,12 +493,13 @@ type BarProps = {
   onHover: (hovering: boolean) => void;
 };
 
-const Bar = React.memo(function Bar({ g, span, rect, y, height, today, scale, canEdit, selected, dimmed, critical, baseline, labelMode, linkTarget, linkSource, dragging, onPointerDown, onLinkStart, onPointerMove, onPointerUp, onClick, onDoubleClick, onKeyDown, onFocus, onBlur, onHover }: BarProps) {
+const Bar = React.memo(function Bar({ g, span, rect: rectIn, y, height, today, scale, canEdit, selected, dimmed, critical, baseline, labelMode, linkTarget, linkSource, dragging, onPointerDown, onLinkStart, onPointerMove, onPointerUp, onClick, onDoubleClick, onKeyDown, onFocus, onBlur, onHover }: BarProps) {
   const task = g.task;
+  let rect = rectIn;
   const done = task.status.category === "done";
   const overdue = !done && span.end < today;
   const progress = task.subtaskCount > 0 ? task.subtaskDoneCount / task.subtaskCount : done ? 1 : 0;
-  const label = task.title;
+  const label = task.dueTime && span.start === span.end && scale.pxPerDay >= 96 ? `${task.dueTime.slice(0, 5)} ${task.title}` : task.title;
   const labelWidth = label.length * LABEL_CHAR_PX + 16;
   const inside = labelMode === "auto" ? rect.width >= labelWidth : rect.width >= labelWidth;
   const name = `${task.title}, ${formatDateShort(span.start)}${span.start !== span.end ? ` to ${formatDateShort(span.end)}` : ""}, ${task.status.name}`;
@@ -535,6 +536,13 @@ const Bar = React.memo(function Bar({ g, span, rect, y, height, today, scale, ca
     );
   }
 
+  // When a day is wide enough (Calendar week and day), a single day task with a due time sits at its hour.
+  const timed = task.dueTime && span.start === span.end && scale.pxPerDay >= 96 ? task.dueTime.slice(0, 5) : null;
+  if (timed) {
+    const [h, m] = timed.split(":").map(Number);
+    const fraction = Math.min(1, Math.max(0, (h + (Number.isFinite(m) ? m : 0) / 60) / 24));
+    rect = { x: rect.x + fraction * scale.pxPerDay, width: Math.max(56, scale.pxPerDay / 12) };
+  }
   const barFill = critical ? "var(--color-brand)" : "var(--item-tint)";
   const edgeFill = critical ? "var(--color-brand-pressed)" : "var(--item-color)";
   const textFill = critical ? "var(--color-fg-on-brand)" : "var(--color-fg)";

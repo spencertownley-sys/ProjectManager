@@ -166,7 +166,7 @@ export function CommandBar({ project, spec, setSpec, onReset, onQuickAdd, onSave
   const addFilter = (def: FieldDef) => setSpec((prev) => ({ ...prev, filters: { ...prev.filters, items: [...prev.filters.items, defaultFilterFor(def)] } }));
 
   return (
-    <div className="flex h-10 shrink-0 items-center gap-1 border-b border-border bg-surface px-3">
+    <div className="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-b border-border bg-surface px-3 [&>*]:shrink-0">
       {canEdit ? (
         <Tooltip content="Add task" shortcut="N">
           <Button variant="primary" size="sm" onClick={onQuickAdd}>

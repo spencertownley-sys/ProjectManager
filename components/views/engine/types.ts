@@ -22,6 +22,8 @@ export type EngineProps = {
   rows: EngineRow[];
   range: DateRange;
   zoom: Zoom;
+  /** Overrides the zoom level's pixels per day, for example to fit a week to the viewport (Calendar). */
+  pxPerDay?: number;
   today: string;
   weekStartsOn: number;
   rowHeight: number;
