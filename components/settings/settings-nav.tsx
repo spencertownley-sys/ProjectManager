@@ -31,7 +31,7 @@ export function settingsGroups(base: string, canManageWorkspace: boolean): Setti
       items: [
         { href: `${base}/integrations`, label: "Connected apps", disabled: true },
         { href: `${base}/api-keys`, label: "API keys" },
-        { href: `${base}/webhooks`, label: "Webhooks", disabled: true },
+        { href: `${base}/webhooks`, label: "Webhooks" },
       ],
     });
   }

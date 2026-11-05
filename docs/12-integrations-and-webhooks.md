@@ -58,6 +58,8 @@ Inngest function `webhooks/deliver`: POST with a 10-second timeout; success is a
 
 Batching: events for the same webhook within 500 ms are delivered as separate requests in order; no batching in v1.
 
+Implementation status (v1 build): fan out runs in the `process-task-event` Inngest function, so every `task_events` type in the catalog is delivered; `project.*`, `section.*`, `cycle.*`, `status_update.posted`, `member.*`, `form.submitted`, and `automation.failed` are accepted at registration and start flowing when those mutations write events in phase 2. The `deliver-webhook` function makes each attempt a durable step with durable sleeps between them; `webhook-housekeeping` runs daily to prune the 30 day log and re-queue deliveries Inngest never received. Secrets are `whsec_` plus an HMAC of random bytes with `WEBHOOK_SIGNING_SALT`, stored in plain text because delivery needs them. Admins are notified in the Inbox (`webhook_disabled`) when a webhook pauses.
+
 ## 3. Inbound webhooks
 
 A project owner creates an inbound webhook and receives a URL `https://app.<domain>/api/webhooks/inbound/<token>` plus an optional shared secret (sent as `X-TaskParty-Secret`). The mapping editor maps JSON paths in the incoming body to task fields (`$.issue.title -> title`, `$.issue.body -> description`, `$.priority -> custom:fld_priority`) with an optional match key (`$.issue.id -> custom:fld_external_id`) so repeated calls update rather than duplicate. Rate limit 120 requests per minute per token. Payload limit 1 MB.

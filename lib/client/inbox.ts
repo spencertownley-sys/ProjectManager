@@ -39,6 +39,8 @@ export function notificationText(n: NotificationItem, today: string): { text: st
       return { text: `${actor} posted a status update on ${n.project?.name ?? "a project"}`, excerpt };
     case "dependency_unblocked":
       return { text: `${key} is unblocked`, excerpt: typeof p.taskTitle === "string" ? p.taskTitle : null };
+    case "webhook_disabled":
+      return { text: "A webhook was disabled after 20 failed deliveries", excerpt: typeof p.url === "string" ? p.url : null };
     default:
       return { text: `${actor} updated ${key}`, excerpt };
   }

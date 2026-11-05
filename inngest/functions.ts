@@ -1,6 +1,9 @@
 import { eq, and, inArray, isNull, ne } from "drizzle-orm";
-import { inngest, taskEventOccurred, csvImportRequested } from "./client";
+import { inngest, taskEventOccurred, csvImportRequested, webhookDeliveryRequested } from "./client";
 import { runImportBatch, failImport, IMPORT_BATCH_SIZE } from "@/lib/services/imports";
+import { fanOutTaskEvent, attemptDelivery, pruneDeliveries, duePendingDeliveries } from "@/lib/services/webhooks";
+import { dispatchWebhookDeliveries } from "@/lib/events/dispatch";
+import { MAX_ATTEMPTS } from "@/lib/webhooks/sign";
 import { getDb, schema } from "@/lib/db/client";
 import { createNotifications } from "@/lib/services/notifications";
 
@@ -19,6 +22,17 @@ export const processTaskEvent = inngest.createFunction(
       return e ?? null;
     });
     if (!row) return { skipped: "missing event" };
+
+    // Outbound webhooks subscribed to this event type get one delivery each (docs/12 section 2).
+    await step.run("fan-out-webhooks", async () => {
+      // Reloaded here because step outputs are JSON (dates become strings).
+      const [fresh] = await db.select().from(schema.taskEvents).where(eq(schema.taskEvents.id, eventId));
+      if (!fresh) return 0;
+      const [ws] = await db.select({ slug: schema.workspaces.slug }).from(schema.workspaces).where(eq(schema.workspaces.id, fresh.workspaceId));
+      const ids = await fanOutTaskEvent(db, fresh, { appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000", workspaceSlug: ws?.slug ?? "" });
+      await dispatchWebhookDeliveries(ids);
+      return ids.length;
+    });
 
     const recipients: Array<{ userId: string; type: string; payload?: Record<string, unknown> }> = [];
     const [task] = await db.select().from(schema.tasks).where(eq(schema.tasks.id, row.taskId));
@@ -98,4 +112,34 @@ export const importCsv = inngest.createFunction(
   },
 );
 
-export const functions = [processTaskEvent, importCsv];
+/**
+ * Delivers one webhook payload with the documented retry schedule (docs/12 section 2.4). Each attempt is a durable
+ * step and the waits between attempts are durable sleeps, so a redeploy does not lose or duplicate a delivery.
+ */
+export const deliverWebhook = inngest.createFunction(
+  { id: "deliver-webhook", retries: 0, triggers: [webhookDeliveryRequested] },
+  async ({ event, step }) => {
+    const { deliveryId } = event.data;
+    const db = getDb();
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+      const result = await step.run(`attempt-${attempt + 1}`, () => attemptDelivery(db, deliveryId));
+      if (result.status !== "retry" || !result.retryInSeconds) return result;
+      await step.sleep(`wait-${attempt + 1}`, `${result.retryInSeconds}s`);
+    }
+    return { status: "failed" };
+  },
+);
+
+/** Daily housekeeping: drop deliveries older than 30 days and re-queue pending ones Inngest never picked up. */
+export const webhookHousekeeping = inngest.createFunction(
+  { id: "webhook-housekeeping", retries: 1, triggers: [{ cron: "15 3 * * *" }] },
+  async ({ step }) => {
+    const db = getDb();
+    const pruned = await step.run("prune", () => pruneDeliveries(db));
+    const due = await step.run("find-due", () => duePendingDeliveries(db));
+    await step.run("requeue", () => dispatchWebhookDeliveries(due));
+    return { pruned, requeued: due.length };
+  },
+);
+
+export const functions = [processTaskEvent, importCsv, deliverWebhook, webhookHousekeeping];

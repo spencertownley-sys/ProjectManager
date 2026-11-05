@@ -11,10 +11,11 @@ import { AppearanceSettings } from "./appearance-settings";
 import { WorkflowsLibrary } from "./workflows-library";
 import { ProjectSettings } from "./project-settings";
 import { ApiKeysPanel } from "./api-keys-panel";
+import { WebhooksPanel } from "./webhooks-panel";
 import type { StatusDraft } from "./workflow-editor";
 import { notificationTypes, notificationChannels, defaultNotificationPreference } from "@/lib/validation/settings";
 
-export type SettingsPreviewPanel = "general" | "members" | "fields" | "workflows" | "tags" | "notifications" | "appearance" | "project" | "api-keys";
+export type SettingsPreviewPanel = "general" | "members" | "fields" | "workflows" | "tags" | "notifications" | "appearance" | "project" | "api-keys" | "webhooks";
 
 /** Dev preview of the settings screens with fixture data; mutations fail with a toast. */
 export function SettingsPreview({ panel, members, fields, statuses, project }: { panel: SettingsPreviewPanel; members: MemberRow[]; fields: FieldRow[]; statuses: StatusDraft[]; project: { id: string; key: string; name: string; color: string; autoSchedule: boolean } }) {
@@ -59,6 +60,23 @@ export function SettingsPreview({ panel, members, fields, statuses, project }: {
               { id: "key-1", name: "CI pipeline", keyPrefix: "tp_live_a1b2", scopes: ["read", "write"], createdBy: "u-spencer", createdByName: "Spencer Townley", lastUsedAt: "2026-11-04T08:12:00Z", expiresAt: null, revokedAt: null, createdAt: "2026-10-20T09:00:00Z" },
               { id: "key-2", name: "Looker dashboard", keyPrefix: "tp_live_c3d4", scopes: ["read"], createdBy: "u-jenny", createdByName: "Jenny Park", lastUsedAt: null, expiresAt: "2027-01-01T00:00:00Z", revokedAt: null, createdAt: "2026-11-01T15:30:00Z" },
               { id: "key-3", name: "Old Zapier", keyPrefix: "tp_live_e5f6", scopes: ["write"], createdBy: "u-spencer", createdByName: "Spencer Townley", lastUsedAt: "2026-09-02T10:00:00Z", expiresAt: null, revokedAt: "2026-10-01T10:00:00Z", createdAt: "2026-08-01T10:00:00Z" },
+            ]}
+          />
+        </SettingsPage>
+      ) : null}
+      {panel === "webhooks" ? (
+        <SettingsPage title="Webhooks" description="Send signed events to other systems when work changes.">
+          <WebhooksPanel
+            projects={[{ id: project.id, key: project.key, name: project.name, color: project.color }]}
+            initial={[
+              { id: "wh-1", url: "https://hooks.example.com/taskparty", events: ["task.created", "task.status_changed", "task.completed", "comment.created"], projectId: null, isEnabled: true, failureCount: 0, createdBy: "u-spencer", createdAt: "2026-10-12T09:00:00Z", lastDelivery: { status: "delivered", createdAt: "2026-11-04T07:50:00Z", responseCode: 200 } },
+              { id: "wh-2", url: "https://api.partner.example/v2/events", events: ["task.completed"], projectId: project.id, isEnabled: true, failureCount: 3, createdBy: "u-jenny", createdAt: "2026-11-01T11:00:00Z", lastDelivery: { status: "failed", createdAt: "2026-11-03T16:20:00Z", responseCode: 503 } },
+              { id: "wh-3", url: "https://old.example.com/hook", events: ["task.created"], projectId: null, isEnabled: false, failureCount: 20, createdBy: "u-spencer", createdAt: "2026-08-01T10:00:00Z", lastDelivery: { status: "disabled", createdAt: "2026-10-20T10:00:00Z", responseCode: null } },
+            ]}
+            staticDeliveries={[
+              { id: 42, webhookId: "wh-1", eventType: "task.status_changed", status: "delivered", attempts: 1, lastResponseCode: 200, lastError: null, nextAttemptAt: null, deliveredAt: "2026-11-04T07:50:01Z", createdAt: "2026-11-04T07:50:00Z", payload: { id: "evt_912", type: "task.status_changed", project_id: project.id, data: { task: { key: "MKT-8", title: "Landing page build" }, changes: { status: { before: "Approved", after: "In progress" } } } } },
+              { id: 41, webhookId: "wh-1", eventType: "comment.created", status: "failed", attempts: 6, lastResponseCode: 503, lastError: "HTTP 503: upstream unavailable", nextAttemptAt: null, deliveredAt: null, createdAt: "2026-11-02T13:10:00Z", payload: { id: "evt_880", type: "comment.created" } },
+              { id: 40, webhookId: "wh-1", eventType: "task.created", status: "pending", attempts: 2, lastResponseCode: 500, lastError: "HTTP 500: ", nextAttemptAt: "2026-11-04T08:30:00Z", deliveredAt: null, createdAt: "2026-11-04T07:00:00Z", payload: { id: "evt_901", type: "task.created" } },
             ]}
           />
         </SettingsPage>
