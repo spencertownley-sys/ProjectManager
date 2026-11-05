@@ -19,11 +19,11 @@ Both call functions in `/lib/services`. Authorization (document 08) and validati
 - Content type: `application/json; charset=utf-8`.
 - IDs: UUIDs. Tasks also accept their human key (`MKT-142`) in path parameters.
 - Timestamps: ISO 8601 UTC. Dates: `YYYY-MM-DD`.
-- Pagination: cursor based. Requests take `limit` (default 50, max 200) and `cursor`; responses include `next_cursor` or null.
+- Pagination: cursor based. Requests take `limit` (default 50, max 200) and `cursor`; responses include `next_cursor` or null. In v1 the cursor is an opaque offset into the sorted result, which stays stable for a given sort.
 - Filtering on list endpoints: a `filter` query parameter containing a URL-encoded ViewSpec filter group, plus common shortcuts (`assignee=me`, `status_category=in_progress`, `due_before=2026-12-01`).
 - Field selection: `fields=title,status,assignee` to trim payloads; `expand=assignee,status,custom_fields` to inline related objects.
-- Rate limits: 600 requests per minute per key, burst 100. Headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`. Exceeding returns 429 with `Retry-After`.
-- Idempotency: `Idempotency-Key` header honored on POST for 24 hours.
+- Rate limits: 600 requests per minute per key, burst 100. Headers `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`. Exceeding returns 429 with `Retry-After`. The v1 limiter is a token bucket per server instance; a shared store (Upstash) replaces it when traffic justifies the dependency.
+- Idempotency: `Idempotency-Key` header honored on POST for 24 hours (per server instance in v1, same note as rate limits).
 - Concurrency: PATCH accepts `If-Match: <version>`; a stale version returns 409 with the current object.
 
 ### Error contract
@@ -107,8 +107,8 @@ Codes: `unauthorized` (401), `forbidden` (403), `not_found` (404), `validation_f
 | GET, POST | /projects/{id}/fields | Project fields; POST adopts a library field or creates a project field |
 | PATCH, DELETE | /fields/{id} | |
 | GET, POST | /tags | |
-| GET, POST | /workflows | |
-| PATCH | /workflows/{id} | Replace statuses atomically |
+| GET | /projects/{id}/workflow | The project's statuses (workflows are per project in the data model, so there is no workspace level list) |
+| PATCH | /projects/{id}/workflow | Replace statuses atomically |
 
 ### Portfolios and goals
 
@@ -148,6 +148,10 @@ Codes: `unauthorized` (401), `forbidden` (403), `not_found` (404), `validation_f
 ### Public form submission (no auth)
 
 `POST /api/public/forms/{token}` accepts form data and attachments, protected by Turnstile and per-IP rate limits.
+
+### Implementation status (v1 build)
+
+Implemented in `app/api/v1`: workspace, members, users, projects (list, create, get, update, delete, archive, unarchive, sections, cycles, status updates, views, members list, workflow, fields, tasks), tasks (list across the workspace, get by id or key, update with `If-Match`, delete, restore, move, bulk, subtasks, comments, dependencies, tags, events), fields, tags, events, search, webhooks, and `openapi.json`. Not yet implemented: project member role changes, duplicate, attachments, reactions, followers, multi-home, portfolios, goals, forms, automations, and inbound webhooks. Keys with the `read` scope cannot write; `admin` is needed for fields, tags, and webhooks.
 
 ## 4. Object shapes (abridged)
 

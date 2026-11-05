@@ -10,10 +10,11 @@ import { NotificationMatrix } from "./notification-matrix";
 import { AppearanceSettings } from "./appearance-settings";
 import { WorkflowsLibrary } from "./workflows-library";
 import { ProjectSettings } from "./project-settings";
+import { ApiKeysPanel } from "./api-keys-panel";
 import type { StatusDraft } from "./workflow-editor";
 import { notificationTypes, notificationChannels, defaultNotificationPreference } from "@/lib/validation/settings";
 
-export type SettingsPreviewPanel = "general" | "members" | "fields" | "workflows" | "tags" | "notifications" | "appearance" | "project";
+export type SettingsPreviewPanel = "general" | "members" | "fields" | "workflows" | "tags" | "notifications" | "appearance" | "project" | "api-keys";
 
 /** Dev preview of the settings screens with fixture data; mutations fail with a toast. */
 export function SettingsPreview({ panel, members, fields, statuses, project }: { panel: SettingsPreviewPanel; members: MemberRow[]; fields: FieldRow[]; statuses: StatusDraft[]; project: { id: string; key: string; name: string; color: string; autoSchedule: boolean } }) {
@@ -49,6 +50,17 @@ export function SettingsPreview({ panel, members, fields, statuses, project }: {
       {panel === "tags" ? (
         <SettingsPage title="Tags" description="Tags are shared across every project in the workspace.">
           <TagsEditor initial={[{ id: "tag-email", name: "Email", color: "teal", count: 7 }, { id: "tag-web", name: "Web", color: "purple", count: 4 }]} />
+        </SettingsPage>
+      ) : null}
+      {panel === "api-keys" ? (
+        <SettingsPage title="API keys" description="Keys for scripts and integrations that call the public REST API on behalf of this workspace.">
+          <ApiKeysPanel
+            initial={[
+              { id: "key-1", name: "CI pipeline", keyPrefix: "tp_live_a1b2", scopes: ["read", "write"], createdBy: "u-spencer", createdByName: "Spencer Townley", lastUsedAt: "2026-11-04T08:12:00Z", expiresAt: null, revokedAt: null, createdAt: "2026-10-20T09:00:00Z" },
+              { id: "key-2", name: "Looker dashboard", keyPrefix: "tp_live_c3d4", scopes: ["read"], createdBy: "u-jenny", createdByName: "Jenny Park", lastUsedAt: null, expiresAt: "2027-01-01T00:00:00Z", revokedAt: null, createdAt: "2026-11-01T15:30:00Z" },
+              { id: "key-3", name: "Old Zapier", keyPrefix: "tp_live_e5f6", scopes: ["write"], createdBy: "u-spencer", createdByName: "Spencer Townley", lastUsedAt: "2026-09-02T10:00:00Z", expiresAt: null, revokedAt: "2026-10-01T10:00:00Z", createdAt: "2026-08-01T10:00:00Z" },
+            ]}
+          />
         </SettingsPage>
       ) : null}
       {panel === "notifications" ? (
