@@ -61,6 +61,7 @@ export const viewType = pgEnum("view_type", [
 ]);
 export const health = pgEnum("health", ["on_track", "at_risk", "off_track", "on_hold", "complete"]);
 export const estimateUnit = pgEnum("estimate_unit", ["points", "hours"]);
+export const importStatus = pgEnum("import_status", ["pending", "running", "completed", "failed"]);
 export const notificationChannel = pgEnum("notification_channel", ["in_app", "email", "chat"]);
 export const webhookDeliveryStatus = pgEnum("webhook_delivery_status", [
   "pending",
@@ -874,6 +875,35 @@ export const taskTagsRelations = relations(taskTags, ({ one }) => ({
   task: one(tasks, { fields: [taskTags.taskId], references: [tasks.id] }),
   tag: one(tags, { fields: [taskTags.tagId], references: [tags.id] }),
 }));
+export const imports = pgTable(
+  "imports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspaceId: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => users.id),
+    fileName: text("file_name").notNull(),
+    mapping: jsonb("mapping").notNull(),
+    rows: jsonb("rows").notNull(),
+    status: importStatus("status").notNull().default("pending"),
+    totalRows: integer("total_rows").notNull(),
+    processedRows: integer("processed_rows").notNull().default(0),
+    createdCount: integer("created_count").notNull().default(0),
+    errorCount: integer("error_count").notNull().default(0),
+    errors: jsonb("errors").notNull().default([]),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+    createdAt: now(),
+  },
+  (t) => [index().on(t.projectId, t.createdAt)],
+);
+
 export const taskFieldValuesRelations = relations(taskFieldValues, ({ one }) => ({
   task: one(tasks, { fields: [taskFieldValues.taskId], references: [tasks.id] }),
   field: one(fieldDefinitions, { fields: [taskFieldValues.fieldId], references: [fieldDefinitions.id] }),

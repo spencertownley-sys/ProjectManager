@@ -13,10 +13,11 @@ import { createField, updateField, deleteField, listLibraryFields, listProjectFi
 import { listCycles, cycleBurndown, projectVelocity, planTasks, updateCycle } from "@/lib/services/cycles";
 import { createCycle, closeCycle, saveProjectAsTemplate, listWorkspaceTemplates } from "@/lib/services/projects";
 import { searchWorkspace } from "@/lib/services/search";
+import { createImport, getImport, runImportBatch, listImports } from "@/lib/services/imports";
 import { defaultViewSpec } from "@/lib/validation/view-spec";
 import { eq } from "drizzle-orm";
 
-vi.mock("@/lib/events/dispatch", () => ({ dispatchAfterCommit: vi.fn(async () => undefined) }));
+vi.mock("@/lib/events/dispatch", () => ({ dispatchAfterCommit: vi.fn(async () => undefined), dispatchImport: vi.fn(async () => undefined) }));
 
 const today = "2026-11-03";
 
@@ -317,5 +318,48 @@ describe("services on PGlite", () => {
     // Templates stay out of the project list.
     const { listProjects } = await import("@/lib/services/projects");
     expect((await listProjects(ctx, { today })).some((p) => p.id === tpl.id)).toBe(false);
+  });
+
+  it("imports CSV rows in batches, creating sections and tags and skipping bad rows", async () => {
+    const ctx = { db, actor: member };
+    const done = statuses.find((s) => s.category === "done")!;
+    const mapping = [
+      { column: 0, target: "title" },
+      { column: 1, target: "section" },
+      { column: 2, target: "status" },
+      { column: 3, target: "dueDate" },
+      { column: 4, target: "tags" },
+      { column: 5, target: "parent" },
+      { column: 6, target: "estimate" },
+    ];
+    const rows = [
+      ["Imported parent", "Imported section", done.name, "12/11/2026", "Imported tag, Other", "", "5"],
+      ["Imported child", "", "", "", "", "Imported parent", "2"],
+      ["", "Imported section", "", "", "", "", ""],
+      ["Bad status", "", "Nope", "", "", "", ""],
+      ["Orphan", "", "", "", "", "Missing parent", ""],
+    ];
+    const rec = await createImport(ctx, { projectId, fileName: "tasks.csv", mapping, rows });
+    expect(rec).toMatchObject({ status: "pending", totalRows: 5, processedRows: 0 });
+    const first = await runImportBatch(db, rec.id, 2);
+    expect(first).toEqual({ done: false, processed: 2 });
+    const mid = await getImport(ctx, rec.id);
+    expect(mid).toMatchObject({ status: "running", processedRows: 2, createdCount: 2, errorCount: 0 });
+    const second = await runImportBatch(db, rec.id, 10);
+    expect(second.done).toBe(true);
+    const final = await getImport(ctx, rec.id);
+    expect(final).toMatchObject({ status: "completed", processedRows: 5, createdCount: 2, errorCount: 3 });
+    expect(final.errors.map((e) => e.row)).toEqual([3, 4, 5]);
+    const created = await queryProjectTasks(ctx, projectId, { ...defaultViewSpec(), showCompleted: "all", subtasks: "flat" }, today);
+    const parent = created.rows.find((r) => r.title === "Imported parent")!;
+    const child = created.rows.find((r) => r.title === "Imported child")!;
+    expect(parent).toMatchObject({ dueDate: "2026-11-12", estimate: 5 });
+    expect(parent.completedAt).not.toBeNull();
+    expect(parent.tags.map((t) => t.name).sort()).toEqual(["Imported tag", "Other"]);
+    expect(child.parentId).toBe(parent.id);
+    const detail = await getProject(ctx, projectId);
+    expect(detail.sections.some((s) => s.name === "Imported section")).toBe(true);
+    expect((await listImports(ctx, projectId))[0]?.id).toBe(rec.id);
+    await expect(runImportBatch(db, rec.id)).resolves.toEqual({ done: true, processed: 5 });
   });
 });

@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/misc";
 import { CommandBar } from "./command-bar";
 import { ProjectOverviewPane } from "./project-overview-pane";
 import { SaveAsTemplateDialog } from "./save-as-template-dialog";
+import { ImportDialog } from "./import-dialog";
 import type { ProjectInfo, ViewProps } from "@/components/views/types";
 import { viewOrder, viewMeta } from "@/components/views/view-registry";
 import { ListView } from "@/components/views/list/list-view";
@@ -46,6 +47,8 @@ const CalendarView = React.lazy(() => import("@/components/views/calendar/calend
 type Props = {
   project: ProjectInfo;
   viewType: ViewType;
+  /** Dev preview: open a dialog on mount. */
+  initialDialog?: "import";
   savedViewId: string | null;
   initialData: ProjectTasksData;
   initialSpec: ViewSpec;
@@ -61,7 +64,7 @@ const healthMeta: Record<string, { label: string; color: string }> = {
   complete: { label: "Complete", color: "blue" },
 };
 
-export function ProjectWorkspace({ project, viewType, savedViewId, initialData, initialSpec, staticData }: Props) {
+export function ProjectWorkspace({ project, viewType, savedViewId, initialData, initialSpec, staticData, initialDialog }: Props) {
   const router = useRouter();
   const params = useSearchParams();
   const { slug, today, members, user, workspace } = useWorkspace();
@@ -73,6 +76,7 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
   useProjectRealtime(project.id);
   const [overviewOpen, setOverviewOpen] = React.useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(initialDialog === "import");
   const [saveOpen, setSaveOpen] = React.useState(false);
   const [quickAddSignal, setQuickAddSignal] = React.useState(0);
   const canEdit = project.role === "owner" || project.role === "editor";
@@ -178,6 +182,7 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
                 <Link href={`${base}/cycles`}>{workspace.cycleLabel}s</Link>
               </MenuItem>
               <MenuItem onSelect={async () => { const res = await setDefaultViewAction(slug, project.id, savedViewId); if (res.ok) toast({ title: "Default view updated", kind: "success" }); router.refresh(); }}>Set current view as default</MenuItem>
+              <MenuItem onSelect={() => setImportOpen(true)}>Import from CSV</MenuItem>
               <MenuItem onSelect={() => setSaveTemplateOpen(true)}>Save as template</MenuItem>
               <MenuSeparator />
               <MenuItem onSelect={async () => { const res = await archiveProjectAction(slug, project.id, !project.archivedAt); if (res.ok) { toast({ title: project.archivedAt ? "Project restored" : "Project archived", kind: "success" }); router.refresh(); } }}>{project.archivedAt ? "Restore project" : "Archive project"}</MenuItem>
@@ -273,6 +278,7 @@ export function ProjectWorkspace({ project, viewType, savedViewId, initialData, 
 
       <ProjectOverviewPane project={project} open={overviewOpen} onOpenChange={setOverviewOpen} />
       <SaveAsTemplateDialog open={saveTemplateOpen} onOpenChange={setSaveTemplateOpen} project={{ id: project.id, name: project.name }} />
+      <ImportDialog open={importOpen} onOpenChange={setImportOpen} project={project} />
       <SaveViewDialog open={saveOpen} onOpenChange={setSaveOpen} project={project} viewType={viewType} spec={spec} canShare={canEdit} ownerId={user.id} />
     </div>
   );

@@ -130,6 +130,7 @@ export default async function PreviewPage({
               initialData={data}
               staticData={data}
               initialSpec={spec ? decodeViewSpec(spec) : defaultViewSpec()}
+              initialDialog={view === "import" ? "import" : undefined}
             />
           )}
         </AppShell>

@@ -1,5 +1,6 @@
 import { eq, and, inArray, isNull, ne } from "drizzle-orm";
-import { inngest, taskEventOccurred } from "./client";
+import { inngest, taskEventOccurred, csvImportRequested } from "./client";
+import { runImportBatch, failImport, IMPORT_BATCH_SIZE } from "@/lib/services/imports";
 import { getDb, schema } from "@/lib/db/client";
 import { createNotifications } from "@/lib/services/notifications";
 
@@ -80,4 +81,21 @@ export const processTaskEvent = inngest.createFunction(
   },
 );
 
-export const functions = [processTaskEvent];
+/**
+ * Runs a CSV import in batches (docs/16 step 1.17). Each batch is a durable step, so a retry resumes from the
+ * recorded progress instead of creating duplicate tasks.
+ */
+export const importCsv = inngest.createFunction(
+  { id: "import-csv", retries: 2, triggers: [csvImportRequested], onFailure: async ({ event }) => failImport(getDb(), event.data.event.data.importId, "The import stopped after repeated errors") },
+  async ({ event, step }) => {
+    const { importId } = event.data;
+    const db = getDb();
+    for (let batch = 0; batch < 1000; batch += 1) {
+      const result = await step.run(`batch-${batch}`, () => runImportBatch(db, importId, IMPORT_BATCH_SIZE));
+      if (result.done) return { processed: result.processed };
+    }
+    return { processed: "limit" };
+  },
+);
+
+export const functions = [processTaskEvent, importCsv];

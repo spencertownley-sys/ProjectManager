@@ -116,7 +116,7 @@ Notifications are materialized per recipient. Preferences are per type and chann
 
 ## 5. Integration entities
 
-`api_keys` store a SHA-256 hash; the plain key is shown once. `webhooks` and `webhook_deliveries` implement outbound delivery with retry (document 12, section 3). `inbound_webhooks` map external JSON to task fields. `connections` store provider credentials (encrypted with a key in Vercel env, AES-256-GCM) for Slack, Teams, GitHub, calendars, and Zapier. `task_links` cache linked external objects such as pull requests.
+`imports` (migration 0002) hold one CSV upload each: the column mapping, the parsed rows, status (pending, running, completed, failed), progress counters, and the first 100 row errors; the Inngest job `import-csv` processes them in batches and every created task emits `task.created` like any other create. `api_keys` store a SHA-256 hash; the plain key is shown once. `webhooks` and `webhook_deliveries` implement outbound delivery with retry (document 12, section 3). `inbound_webhooks` map external JSON to task fields. `connections` store provider credentials (encrypted with a key in Vercel env, AES-256-GCM) for Slack, Teams, GitHub, calendars, and Zapier. `task_links` cache linked external objects such as pull requests.
 
 ## 6. Row-level security
 
