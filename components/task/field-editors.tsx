@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { StatusRef, PersonRef } from "@/lib/query-engine/types";
 import type { Priority } from "@/lib/db/schema";
-import { formatDue, toIso, todayIso, addDays as addDaysIso } from "@/lib/client/dates";
+import { formatDue, toIso, addDays as addDaysIso } from "@/lib/client/dates";
+import { useWorkspace } from "@/lib/client/workspace-context";
 
 export const priorityMeta: Record<Priority, { label: string; color: string; rank: number }> = {
   urgent: { label: "Urgent", color: "red", rank: 4 },
@@ -109,7 +110,8 @@ export function PersonPicker({ value, people, onChange, me, compact, placeholder
 
 export function DatePicker({ value, onChange, label, compact, minDate, state, disabled, weekStartsOn = 1 }: { value: string | null; onChange: (iso: string | null) => void; label?: string; compact?: boolean; minDate?: string | null; state?: "overdue" | "soon" | "later" | "none"; disabled?: boolean; weekStartsOn?: number }) {
   const [open, setOpenState] = React.useState(false);
-  const today = todayIso();
+  // The workspace date keeps labels and quick picks consistent with every view (and stable in the preview).
+  const { today } = useWorkspace();
   const [month, setMonth] = React.useState(() => startOfMonth(parseISO(value ?? today)));
   const setOpen = (next: boolean) => {
     if (next) setMonth(startOfMonth(parseISO(value ?? today)));

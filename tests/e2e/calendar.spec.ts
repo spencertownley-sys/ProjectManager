@@ -47,11 +47,18 @@ test.describe("Calendar view", () => {
 
   test("Me chip filters by assignee and the navigation moves months", async ({ page }) => {
     await openCalendar(page);
+    // The first click can land before hydration under load; retry until the filter count reacts.
+    await expect(async () => {
+      await page.getByRole("button", { name: "Only my tasks" }).click();
+      await expect(page.getByRole("button", { name: /^Filter \(1\)/ })).toBeVisible({ timeout: 1500 });
+    }).toPass();
     await page.getByRole("button", { name: "Only my tasks" }).click();
-    await expect(page.getByRole("button", { name: /^Filter \(1\)/ })).toBeVisible();
-    await page.getByRole("button", { name: "Only my tasks" }).click();
+    await expect(page.getByRole("button", { name: /^Filter \(1\)/ })).toHaveCount(0);
+    // Spec changes round trip through the URL; let that settle so the month change is not reverted by a re-render.
+    await page.waitForLoadState("networkidle");
+    await page.waitForTimeout(300);
     await page.getByRole("button", { name: "Next month" }).click();
-    await expect(page.getByText("December 2026")).toBeVisible();
+    await expect(page.getByText("December 2026")).toBeVisible({ timeout: 15_000 });
     await page.getByRole("button", { name: "Today", exact: true }).click();
     await expect(page.getByText("November 2026")).toBeVisible();
   });

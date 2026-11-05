@@ -37,7 +37,10 @@ test.describe("Table view", () => {
 
   test("navigates cells with arrows and Tab and opens pickers with Enter", async ({ page }) => {
     await openTable(page);
-    await cell(page, "t-4", "due_date").click({ position: { x: 100, y: 10 } });
+    // Click the cell padding to the right of the date trigger, whatever the label's width.
+    const due = cell(page, "t-4", "due_date");
+    const dueBox = (await due.boundingBox())!;
+    await due.click({ position: { x: dueBox.width - 4, y: 10 } });
     await expect(cell(page, "t-4", "due_date")).toHaveAttribute("aria-selected", "true");
     await page.keyboard.press("ArrowRight");
     await expect(cell(page, "t-4", "priority")).toBeFocused();
