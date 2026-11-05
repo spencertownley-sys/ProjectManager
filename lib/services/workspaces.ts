@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, like, sql } from "drizzle-orm";
 import { schema, type Database } from "@/lib/db/client";
 import { assertCan, type Actor } from "@/lib/auth/permissions";
 import type { WorkspaceRole } from "@/lib/db/schema";
@@ -34,7 +34,24 @@ export function mapClerkRole(role: string | null | undefined): WorkspaceRole {
 }
 
 /** Upserts the Clerk user mirror. Called from the Clerk webhook and from the first request of a session. */
+/** Seeded members who have not signed in yet carry this prefix; the first sign in with the same email claims the row. */
+export const PLACEHOLDER_USER_PREFIX = "pending:";
+
 export async function upsertUser(db: Database, identity: ClerkIdentity) {
+  if (!identity.clerkUserId.startsWith(PLACEHOLDER_USER_PREFIX) && identity.email) {
+    const [placeholder] = await db
+      .select({ id: schema.users.id })
+      .from(schema.users)
+      .where(and(eq(schema.users.email, identity.email.toLowerCase()), like(schema.users.clerkUserId, `${PLACEHOLDER_USER_PREFIX}%`)));
+    if (placeholder) {
+      const [linked] = await db
+        .update(schema.users)
+        .set({ clerkUserId: identity.clerkUserId, displayName: identity.displayName, avatarUrl: identity.avatarUrl })
+        .where(eq(schema.users.id, placeholder.id))
+        .returning();
+      return linked;
+    }
+  }
   const [user] = await db
     .insert(schema.users)
     .values({ clerkUserId: identity.clerkUserId, email: identity.email, displayName: identity.displayName, avatarUrl: identity.avatarUrl })
