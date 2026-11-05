@@ -14,7 +14,9 @@ function prepareMigration(sql: string): string {
   return sql
     .replace(/create extension if not exists "pg_trgm";/g, "")
     .replace(/create index on tasks using gin \(title gin_trgm_ops\);/g, "")
-    .replace(/create or replace function current_clerk_user_id\(\)[\s\S]*$/m, "");
+    .replace(/create or replace function current_clerk_user_id\(\)[\s\S]*$/m, "")
+    // The RLS helpers above are stripped, so later migrations that alter them are skipped too.
+    .replace(/^alter function public\.(current_clerk_user_id|current_workspace_id|is_workspace_member|can_read_project)\(.*$/gm, "");
 }
 
 export async function createTestDb(): Promise<{ db: Database; client: PGlite }> {
