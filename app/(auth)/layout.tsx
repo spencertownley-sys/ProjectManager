@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { ClerkProvider } from "@clerk/nextjs";
-import { clerkAppearance } from "@/lib/auth/clerk-appearance";
+import { clerkAppearance, clerkLocalization } from "@/lib/auth/clerk-appearance";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider appearance={clerkAppearance}>
+    <ClerkProvider appearance={clerkAppearance} localization={clerkLocalization}>
       <div className="flex min-h-screen flex-col items-center justify-center bg-canvas px-4">
         <Link href="/" className="mb-8 flex items-center gap-2 text-fg no-underline">
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-sm bg-brand type-caption-1-strong text-fg-on-brand">

@@ -21,3 +21,16 @@ export const clerkAppearance = {
     footerActionLink: { color: "var(--color-brand)" },
   },
 };
+
+/*
+  Text overrides for Clerk's components. The Clerk application was created by the Vercel integration and is named
+  after the Vercel project, so the default titles read "Sign in to project-manager"; these keep the product name.
+*/
+export const clerkLocalization = {
+  signIn: {
+    start: { title: "Sign in to TaskParty", subtitle: "Welcome back. Sign in to continue." },
+  },
+  signUp: {
+    start: { title: "Create your TaskParty account", subtitle: "Plan, track, and deliver work with your team." },
+  },
+};
