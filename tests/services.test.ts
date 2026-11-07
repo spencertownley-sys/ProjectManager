@@ -253,8 +253,10 @@ describe("services on PGlite", () => {
 
   it("plans cycles, reconstructs a burndown from events, and reports velocity", async () => {
     const ctx = { db, actor: member };
-    const c1 = await createCycle(ctx, { projectId, name: "Cycle A", startDate: "2026-11-02", endDate: "2026-11-06", capacity: 20 });
-    const c2 = await createCycle(ctx, { projectId, name: "Cycle B", startDate: "2026-11-09", endDate: "2026-11-13" });
+    // Events get the database's real timestamp, so the cycle is placed around the real date: four days back to today.
+    const realDay = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+    const c1 = await createCycle(ctx, { projectId, name: "Cycle A", startDate: realDay(-4), endDate: realDay(0), capacity: 20 });
+    const c2 = await createCycle(ctx, { projectId, name: "Cycle B", startDate: realDay(3), endDate: realDay(7) });
     const t1 = await createTask(ctx, { projectId, title: "Plan me", sectionId: sections[0].id, estimate: 5 });
     const t2 = await createTask(ctx, { projectId, title: "Plan me too", sectionId: sections[0].id, estimate: 3 });
     expect(await planTasks(ctx, { projectId, taskIds: [t1.id, t2.id], cycleId: c1.id })).toBe(2);
@@ -264,7 +266,7 @@ describe("services on PGlite", () => {
     const list = await listCycles(ctx, projectId);
     const a = list.find((c) => c.id === c1.id)!;
     expect(a).toMatchObject({ committed: 8, completed: 3, count: 2, doneCount: 1, capacity: 20 });
-    const burn = await cycleBurndown(ctx, c1.id, "2026-11-06");
+    const burn = await cycleBurndown(ctx, c1.id, realDay(0));
     expect(burn.unit).toBe("estimate");
     expect(burn.points).toHaveLength(5);
     expect(burn.points[4]).toMatchObject({ scope: 8, remaining: 5 });
